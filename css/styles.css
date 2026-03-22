@@ -170,7 +170,13 @@ body {
 .diff-btn.easy.active { background: rgba(34,197,94,.15); }
 .diff-btn.hard { color: var(--yellow); }
 .diff-btn.hard.active { background: rgba(251,191,36,.15); }
-.diff-btn.hell { color: var(--red); opacity: .4; cursor: not-allowed; }
+.diff-btn.hell { color: var(--red); }
+.diff-btn.hell.active {
+  background: rgba(239,68,68,.15);
+  border-color: var(--red);
+  box-shadow: 0 0 20px rgba(239,68,68,.3);
+}
+.diff-btn.hell.locked { opacity: .4; cursor: not-allowed; }
 .diff-btn.hell.locked::after { content: ' 🔒'; }
 
 /* Story box */

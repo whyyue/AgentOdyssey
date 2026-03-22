@@ -1,6 +1,23 @@
-# 🚀 Agent 星际冒险 - 完整版
+# 🚀 Agent Odyssey - AI Agent 学习游戏
 
-一个互动式的 AI Agent 学习游戏，支持难度分级，适合所有年龄段的学习者。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/whyyue/AgentOdyssey?style=social)](https://github.com/whyyue/AgentOdyssey/stargazers)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/whyyue/AgentOdyssey/pulls)
+
+一个互动式的 AI Agent 学习游戏，支持三级难度分级（简单/困难/地狱），适合所有年龄段的学习者。
+
+🎮 **[在线体验](https://whyyue.github.io/AgentOdyssey/)** | 📖 **[变更日志](CHANGELOG.md)** | 🤝 **[贡献指南](#贡献)**
+
+---
+
+## ✨ 特性
+
+- 🎯 **三级难度系统**：简单模式适合小学生，困难模式适合工程师，地狱模式深度解读论文
+- 🌍 **16 个完整关卡**：从 LLM 基础到 Transformer 论文，从工具使用到多 Agent 协作
+- 🔥 **论文深度解读**：地狱模式包含 "Attention is All You Need" 完整解析
+- 💻 **纯前端实现**：无需构建工具，打开即用
+- 📱 **响应式设计**：支持桌面和移动设备
+- 🎨 **精美 UI**：太空主题，星空背景，流畅动画
 
 ## 📁 项目结构
 
@@ -41,7 +58,7 @@ agent-quest/
 1. **难度分级系统**
    - 🟢 简单模式：适合小学生和初学者
    - 🟡 困难模式：适合工程师和开发者
-   - 🔴 地狱模式：锁定状态（未来开放）
+   - 🔴 地狱模式：论文级深度解读（已开放！）
 
 2. **完整的 16 个关卡**（全部完成！）
    - 🌍 LLM 星：认识 AI 大脑
@@ -125,6 +142,15 @@ python -m http.server 8000
 ### ⚡ Transformer 星
 - **简单模式**：注意力机制、为什么需要 Attention
 - **困难模式**：Self-Attention 计算、Q/K/V 矩阵、Multi-Head Attention、常见坑点
+- **地狱模式** 🔥：《Attention is All You Need》论文深度解读
+  - 论文背景与动机
+  - 完整 Encoder-Decoder 架构
+  - Scaled Dot-Product Attention 数学推导
+  - Multi-Head Attention 完整实现
+  - Positional Encoding 数学原理
+  - 论文实验结果与消融实验
+  - 对后续研究的影响（GPT、BERT、T5 等）
+  - 实现中的关键细节与陷阱
 
 ### 🏋️ 预训练星
 - **简单模式**：预测下一个词、训练 AI 大脑
@@ -160,7 +186,11 @@ python -m http.server 8000
 
 - **简单模式**：故事化讲解、概念理解、互动游戏
 - **困难模式**：技术细节、代码示例（20-30 行）、最佳实践、常见坑点
-- **地狱模式**：论文级深度（未来开放）
+- **地狱模式** 🔥：论文级深度（已开放！）
+  - 完整的数学推导和公式
+  - 生产级代码实现
+  - 论文实验结果分析
+  - 对学术界和工业界的影响
 
 ### 代码示例原则
 
@@ -191,24 +221,29 @@ python -m http.server 8000
 
 ## 📝 下一步计划
 
-1. **开放地狱模式**
-   - 论文级深度内容
-   - 完整的生产级代码
-   - 性能优化技巧
+1. **扩展地狱模式**
+   - 为更多关卡添加论文级深度内容
+   - 添加更多经典论文解读
 
 2. **添加更多互动元素**
    - 代码编辑器（可运行代码）
    - 更多小游戏
    - 成就系统
 
-3. **扩展关卡**
-   - Transformer 论文深度解读
-   - 实战：从零写 Agent
-   - Agent 框架对比
+3. **社区贡献**
+   - 多语言支持
+   - 更多实战案例
+   - 视频教程
 
 ## 🤝 贡献
 
 欢迎贡献新的关卡内容或改进现有内容！
+
+1. Fork 本仓库
+2. 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交你的改动 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启一个 Pull Request
 
 ## 📄 许可
 
@@ -216,8 +251,14 @@ MIT License
 
 ---
 
-**当前版本**：v3.0.0（完整版 - 所有 16 个关卡已完成）
+**当前版本**：v3.1.0 - Hell Mode Unlocked 🔥
 
 **最后更新**：2026-03-23
 
-**特别感谢**：感谢用户的耐心和反馈，让这个项目从单文件演变成结构化的完整学习系统！
+**作者**：[@whyyue](https://github.com/whyyue)
+
+**特别感谢**：感谢所有贡献者和用户的反馈，让这个项目从单文件演变成结构化的完整学习系统！
+
+---
+
+⭐ 如果这个项目对你有帮助，请给个 Star！

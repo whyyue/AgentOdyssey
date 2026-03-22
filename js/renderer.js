@@ -67,8 +67,8 @@ function renderLevel() {
       <div class="diff-btn hard ${difficulty === 'hard' ? 'active' : ''}" onclick="switchDifficulty('hard')">
         🟡 困难
       </div>
-      <div class="diff-btn hell locked">
-        🔴 地狱 🔒
+      <div class="diff-btn hell ${difficulty === 'hell' ? 'active' : ''}${planet.difficulties.hell ? '' : ' locked'}" onclick="switchDifficulty('hell')">
+        🔴 地狱${planet.difficulties.hell ? '' : ' 🔒'}
       </div>
     </div>
 
@@ -233,7 +233,9 @@ function prevSection() {
 }
 
 function switchDifficulty(diff) {
-  if (diff === 'hell') return; // 地狱模式锁定
+  const planet = PLANETS.find(p => p.id === currentPlanetId);
+  // 检查该星球是否有对应难度
+  if (diff === 'hell' && !planet.difficulties.hell) return;
   state.currentDifficulty = diff;
   currentSectionIdx = 0; // 重置进度
   renderLevel();

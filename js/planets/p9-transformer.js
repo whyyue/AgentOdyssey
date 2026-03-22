@@ -149,6 +149,257 @@ output = attention_weights @ V`,
           feedback_err: '这是一篇开创时代的论文标题，意思是「只需要注意力机制」就够了！'
         }
       ]
+    },
+
+    // 🔴 地狱模式 - Attention is All You Need 论文深度解读
+    hell: {
+      sections: [
+        {
+          type: 'story',
+          html: `
+            <div class="speaker">🔥 地狱模式已解锁！</div>
+            <div class="chat-bubble robot" style="border-color:var(--red)">
+              🤖 ARIA：船长，欢迎来到地狱模式！这里我们将深度解读 2017 年改变 AI 世界的论文：
+              <strong style="color:var(--red)">《Attention Is All You Need》</strong><br><br>
+              作者：Vaswani et al. (Google Brain & Google Research)<br>
+              发表：NIPS 2017<br>
+              引用次数：>100,000+<br><br>
+              这篇论文提出的 Transformer 架构成为了 GPT、BERT、T5、Claude 等所有现代 LLM 的基础！
+            </div>
+          `
+        },
+        {
+          type: 'concept',
+          title: '📜 论文背景与动机',
+          html: `
+            <p><strong>2017 年之前的问题：</strong></p>
+            <ul style="margin:10px 0 0 16px;line-height:2">
+              <li><strong>RNN/LSTM</strong>：必须按顺序处理，无法并行，训练慢</li>
+              <li><strong>长距离依赖</strong>：信息在长序列中会衰减</li>
+              <li><strong>计算效率</strong>：GPU 无法充分利用</li>
+            </ul>
+            <p style="margin-top:16px"><strong>Transformer 的创新：</strong></p>
+            <ul style="margin:10px 0 0 16px;line-height:2">
+              <li>完全基于 <strong>Attention 机制</strong>，抛弃递归和卷积</li>
+              <li>可以 <strong>并行计算</strong> 所有位置</li>
+              <li>直接建模 <strong>任意距离</strong> 的依赖关系</li>
+              <li>训练速度提升 <strong>10x+</strong></li>
+            </ul>
+          `
+        },
+        {
+          type: 'concept',
+          title: '🏗️ Transformer 完整架构',
+          html: `
+            <p><strong>Encoder-Decoder 结构：</strong></p>
+            <div style="margin:14px 0;padding:14px;background:rgba(255,0,0,.05);border-left:3px solid var(--red);line-height:1.8">
+              <strong>Encoder (左侧)：</strong><br>
+              • Input Embedding + Positional Encoding<br>
+              • N × [ Multi-Head Self-Attention → Add&Norm → Feed Forward → Add&Norm ]<br>
+              • 输出：编码后的表示<br><br>
+
+              <strong>Decoder (右侧)：</strong><br>
+              • Output Embedding + Positional Encoding<br>
+              • N × [ Masked Multi-Head Self-Attention → Add&Norm → Cross-Attention → Add&Norm → Feed Forward → Add&Norm ]<br>
+              • Linear + Softmax → 输出概率分布
+            </div>
+            <p style="font-size:.9rem;color:var(--muted)">
+              论文中使用 N=6 层，d_model=512，h=8 个注意力头
+            </p>
+          `
+        },
+        {
+          type: 'code',
+          title: '📐 Scaled Dot-Product Attention 数学推导',
+          code: `import torch
+import torch.nn.functional as F
+
+def scaled_dot_product_attention(Q, K, V, mask=None):
+    """
+    Q: Query  [batch, heads, seq_len, d_k]
+    K: Key    [batch, heads, seq_len, d_k]
+    V: Value  [batch, heads, seq_len, d_v]
+
+    公式: Attention(Q,K,V) = softmax(QK^T / √d_k)V
+    """
+    d_k = Q.size(-1)
+
+    # 1. 计算注意力分数: QK^T
+    scores = torch.matmul(Q, K.transpose(-2, -1))
+
+    # 2. 缩放: 除以 √d_k (防止梯度消失)
+    scores = scores / torch.sqrt(torch.tensor(d_k, dtype=torch.float32))
+
+    # 3. 可选：应用 mask (用于 decoder 的因果注意力)
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, -1e9)
+
+    # 4. Softmax 归一化
+    attention_weights = F.softmax(scores, dim=-1)
+
+    # 5. 加权求和
+    output = torch.matmul(attention_weights, V)
+
+    return output, attention_weights`,
+          explanation: `
+            <strong>为什么要除以 √d_k？</strong><br>
+            • 当 d_k 很大时，QK^T 的方差会很大<br>
+            • 导致 softmax 进入饱和区，梯度接近 0<br>
+            • 除以 √d_k 可以保持方差稳定<br><br>
+            <strong>论文中的数学证明：</strong><br>
+            假设 Q 和 K 的元素是独立的随机变量，均值为 0，方差为 1，<br>
+            则 QK^T 的方差为 d_k，除以 √d_k 后方差变为 1
+          `
+        },
+        {
+          type: 'code',
+          title: '🎯 Multi-Head Attention 完整实现',
+          code: `class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model=512, num_heads=8):
+        super().__init__()
+        assert d_model % num_heads == 0
+
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_k = d_model // num_heads  # 每个头的维度
+
+        # 线性投影层
+        self.W_q = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(d_model, d_model)
+        self.W_v = nn.Linear(d_model, d_model)
+        self.W_o = nn.Linear(d_model, d_model)
+
+    def forward(self, Q, K, V, mask=None):
+        batch_size = Q.size(0)
+
+        # 1. 线性投影并分割成多个头
+        Q = self.W_q(Q).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+        K = self.W_k(K).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+        V = self.W_v(V).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+
+        # 2. 应用 scaled dot-product attention
+        attn_output, _ = scaled_dot_product_attention(Q, K, V, mask)
+
+        # 3. 合并多个头
+        attn_output = attn_output.transpose(1, 2).contiguous()
+        attn_output = attn_output.view(batch_size, -1, self.d_model)
+
+        # 4. 最终线性投影
+        output = self.W_o(attn_output)
+        return output`,
+          explanation: `
+            <strong>Multi-Head 的优势：</strong><br>
+            • 允许模型在不同的表示子空间关注不同的信息<br>
+            • 8 个头可以学习 8 种不同的注意力模式<br>
+            • 例如：语法关系、语义关系、位置关系等<br><br>
+            <strong>参数量：</strong> 4 × d_model² (4 个线性层)
+          `
+        },
+        {
+          type: 'code',
+          title: '📍 Positional Encoding 数学原理',
+          code: `import numpy as np
+
+def positional_encoding(seq_len, d_model):
+    """
+    PE(pos, 2i)   = sin(pos / 10000^(2i/d_model))
+    PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
+
+    pos: 位置 (0 到 seq_len-1)
+    i: 维度索引 (0 到 d_model/2-1)
+    """
+    pe = np.zeros((seq_len, d_model))
+
+    position = np.arange(seq_len)[:, np.newaxis]
+    div_term = np.exp(np.arange(0, d_model, 2) *
+                      -(np.log(10000.0) / d_model))
+
+    # 偶数维度使用 sin
+    pe[:, 0::2] = np.sin(position * div_term)
+    # 奇数维度使用 cos
+    pe[:, 1::2] = np.cos(position * div_term)
+
+    return pe`,
+          explanation: `
+            <strong>为什么用 sin/cos？</strong><br>
+            • 可以表示任意长度的序列（外推性）<br>
+            • 相对位置关系可以通过线性变换表示<br>
+            • PE(pos+k) 可以表示为 PE(pos) 的线性函数<br><br>
+            <strong>论文中的数学性质：</strong><br>
+            对于任意固定的偏移 k，PE(pos+k) 可以表示为 PE(pos) 的线性函数，<br>
+            这使得模型容易学习相对位置关系
+          `
+        },
+        {
+          type: 'concept',
+          title: '🔬 论文实验结果',
+          html: `
+            <p><strong>机器翻译任务 (WMT 2014)：</strong></p>
+            <ul style="margin:10px 0 0 16px;line-height:2">
+              <li><strong>英德翻译</strong>：BLEU 28.4 (超越之前最好的模型)</li>
+              <li><strong>英法翻译</strong>：BLEU 41.8 (新的 SOTA)</li>
+              <li><strong>训练时间</strong>：8 个 P100 GPU，3.5 天</li>
+              <li><strong>对比</strong>：之前最好的模型需要训练数周</li>
+            </ul>
+            <p style="margin-top:16px"><strong>消融实验 (Ablation Study)：</strong></p>
+            <ul style="margin:10px 0 0 16px;line-height:2">
+              <li>去掉 Positional Encoding → 性能大幅下降</li>
+              <li>减少注意力头数 → 性能下降</li>
+              <li>增加 d_model → 性能提升但收益递减</li>
+              <li>使用学习的位置编码 vs 固定的 sin/cos → 效果相当</li>
+            </ul>
+          `
+        },
+        {
+          type: 'concept',
+          title: '🌟 对后续研究的影响',
+          html: `
+            <p><strong>Transformer 催生的重要模型：</strong></p>
+            <div style="margin:14px 0;padding:14px;background:rgba(255,0,0,.05);border-left:3px solid var(--red);line-height:1.8">
+              <strong>2018 - BERT</strong> (Google)：只用 Encoder，双向预训练<br>
+              <strong>2018 - GPT</strong> (OpenAI)：只用 Decoder，单向生成<br>
+              <strong>2019 - GPT-2</strong>：扩大规模，1.5B 参数<br>
+              <strong>2019 - T5</strong> (Google)：统一的 Text-to-Text 框架<br>
+              <strong>2020 - GPT-3</strong>：175B 参数，涌现能力<br>
+              <strong>2021 - CLIP</strong> (OpenAI)：视觉-语言 Transformer<br>
+              <strong>2022 - ChatGPT</strong>：GPT-3.5 + RLHF<br>
+              <strong>2023 - GPT-4</strong>：多模态 Transformer<br>
+              <strong>2024 - Claude 3</strong>：长上下文 Transformer
+            </div>
+            <p style="margin-top:16px;font-size:.9rem;color:var(--muted)">
+              Transformer 不仅改变了 NLP，还影响了计算机视觉 (ViT)、语音识别 (Whisper)、<br>
+              蛋白质结构预测 (AlphaFold2) 等多个领域！
+            </p>
+          `
+        },
+        {
+          type: 'pitfalls',
+          title: '⚠️ 实现中的关键细节',
+          items: [
+            'Layer Normalization 的位置：论文用 Post-LN，但 Pre-LN 训练更稳定（GPT-2 开始采用）',
+            'Warmup 学习率调度：前 4000 步线性增加，然后按 step^(-0.5) 衰减，这对训练稳定性至关重要',
+            'Dropout 的使用：在 Attention 权重、残差连接、Embedding 上都要加 Dropout (p=0.1)',
+            'Label Smoothing：使用 ε=0.1 的标签平滑，防止过拟合',
+            'Gradient Clipping：梯度裁剪防止梯度爆炸',
+            'Attention Mask：Decoder 必须使用因果 mask，防止看到未来信息',
+            '参数初始化：Xavier 初始化，对训练收敛速度影响很大',
+            'Batch Size：论文使用约 25000 个 tokens/batch，需要梯度累积'
+          ]
+        },
+        {
+          type: 'quiz',
+          q: 'Transformer 为什么比 RNN/LSTM 训练更快？',
+          opts: [
+            '因为 Transformer 的参数更少',
+            '因为 Self-Attention 可以并行计算所有位置，而 RNN 必须按顺序处理',
+            '因为 Transformer 使用了更好的优化器',
+            '因为 Transformer 的模型更简单'
+          ],
+          ans: 1,
+          feedback_ok: '🔥 完全正确！并行化是 Transformer 的核心优势。RNN 的 t 时刻依赖 t-1 时刻，无法并行；而 Self-Attention 可以同时计算所有位置的表示，充分利用 GPU 的并行计算能力！',
+          feedback_err: '关键在于「并行计算」！RNN 必须等前一个时间步计算完才能计算下一个，而 Transformer 的 Self-Attention 可以同时处理所有位置，这是训练速度提升 10x+ 的根本原因！'
+        }
+      ]
     }
   }
 });

@@ -1,0 +1,126 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [3.1.0] - 2026-03-23
+
+### 🔥 Added - Hell Mode Unlocked!
+- **地狱模式激活**：为 Transformer 星球添加地狱难度
+- **论文深度解读**：完整解析《Attention is All You Need》论文
+  - 论文背景与动机
+  - 完整 Encoder-Decoder 架构详解
+  - Scaled Dot-Product Attention 数学推导
+  - Multi-Head Attention 完整实现（PyTorch 代码）
+  - Positional Encoding 数学原理与实现
+  - 论文实验结果与消融实验分析
+  - 对后续研究的影响（GPT、BERT、T5、Claude 等）
+  - 实现中的 8 个关键细节与陷阱
+- **三级难度系统**：支持简单/困难/地狱三个难度级别切换
+
+### 🎨 Changed
+- 更新 CSS 样式支持地狱模式的红色主题
+- 优化难度切换器，地狱模式解锁后显示红色高亮效果
+- 更新 README 添加 GitHub badges 和项目展示优化
+
+### 🔧 Fixed
+- 修复难度切换逻辑，支持动态检测星球是否有对应难度
+- 优化地狱模式按钮状态（锁定/解锁）的显示逻辑
+
+---
+
+## [3.0.0] - 2026-03-23
+
+### 🎉 Added - 完整 16 关卡
+- 新增 8 个高级关卡：
+  - **p9-transformer.js**：Transformer 架构与注意力机制
+  - **p10-pretrain.js**：预训练 - 训练 AI 大脑
+  - **p11-posttrain.js**：后训练 - SFT、RLHF、对齐
+  - **p12-practice-1.js**：实战 - 天气助手 Agent
+  - **p13-practice-2.js**：实战 - 代码审查 Agent
+  - **p14-framework-1.js**：框架对比 - LangChain vs LangGraph
+  - **p15-framework-2.js**：框架对比 - AutoGen vs CrewAI
+  - **p16-final.js**：毕业关卡 - 完整架构与最佳实践
+
+### 🎨 Changed
+- 更新主页显示 16 颗星球
+- 优化 README 文档，添加所有新关卡的详细说明
+- 更新版本号到 v3.0.0
+
+---
+
+## [2.0.0] - 2026-03-22
+
+### 🏗️ Changed - 项目重构
+- **模块化重构**：从单文件 HTML 拆分为多文件项目结构
+  - 创建 `css/` 文件夹存放样式
+  - 创建 `js/` 文件夹存放逻辑
+  - 创建 `js/planets/` 文件夹，每个关卡独立文件
+- **代码优化**：困难模式代码示例精简到 20-30 行
+- **文档完善**：添加完整的项目结构说明和使用指南
+
+### 📁 Project Structure
+```
+agent-quest/
+├── index.html
+├── css/
+│   └── styles.css
+├── js/
+│   ├── main.js
+│   ├── game-state.js
+│   ├── renderer.js
+│   ├── interactions.js
+│   └── planets/
+│       ├── p1-llm.js
+│       ├── p2-tool-1.js
+│       ├── ... (8 planet files)
+│       └── p8-multi-agent.js
+└── README.md
+```
+
+---
+
+## [1.0.0] - 2026-03-21
+
+### 🎉 Initial Release
+- **8 个基础关卡**：
+  - LLM 星：认识 AI 大脑
+  - 工具星 1：工具定义
+  - 工具星 2：工具执行
+  - ReAct 星 1：基础循环
+  - ReAct 星 2：多步推理
+  - 记忆星 1：短期记忆
+  - 记忆星 2：长期记忆
+  - 多 Agent 星：架构与协作
+
+### ✨ Features
+- **双难度系统**：简单模式 + 困难模式
+- **互动式学习**：故事、概念、代码、测试题
+- **进度追踪**：星星收集系统
+- **响应式设计**：支持桌面和移动设备
+- **太空主题 UI**：星空背景、流畅动画
+
+---
+
+## 版本说明
+
+- **Major 版本**（x.0.0）：重大功能更新或架构变更
+- **Minor 版本**（0.x.0）：新增关卡、新功能、重要改进
+- **Patch 版本**（0.0.x）：Bug 修复、小优化、文档更新
+
+---
+
+## 贡献者
+
+感谢所有为这个项目做出贡献的人！
+
+- [@whyyue](https://github.com/whyyue) - 项目创建者和主要维护者
+
+---
+
+## 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+
