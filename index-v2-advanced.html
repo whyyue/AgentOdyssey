@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚀 Agent 星际冒险 - 进阶版</title>
+<style>
+  /* ===== 全局 ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --space: #0a0e1a;
+    --deep: #0d1b2a;
+    --panel: #111827;
+    --border: #1e3a5f;
+    --cyan: #00e5ff;
+    --purple: #a855f7;
+    --yellow: #fbbf24;
+    --green: #22c55e;
+    --red: #ef4444;
+    --orange: #f97316;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--space);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ===== 星空背景 ===== */
+  #stars-canvas {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  }
+
+  /* ===== 屏幕管理 ===== */
+  .screen {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .4s;
+  }
+  .screen.active { opacity: 1; pointer-events: all; }
+
+  /* ===== 通用卡片 ===== */
+  .card {
+    background: linear-gradient(135deg, #0d1b2a 0%, #111827 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;

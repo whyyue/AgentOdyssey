@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚀 Agent 星际冒险</title>
+<style>
+  /* ===== 全局 ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --space: #0a0e1a;
+    --deep: #0d1b2a;
+    --panel: #111827;
+    --border: #1e3a5f;
+    --cyan: #00e5ff;
+    --purple: #a855f7;
+    --yellow: #fbbf24;
+    --green: #22c55e;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--space);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ===== 星空背景 ===== */
+  #stars-canvas {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  }
+
+  /* ===== 屏幕管理 ===== */
+  .screen {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .4s;
+  }
+  .screen.active { opacity: 1; pointer-events: all; }
+
+  /* ===== 通用卡片 ===== */
+  .card {
+    background: linear-gradient(135deg, #0d1b2a 0%, #111827 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 40px;
+    box-shadow: 0 0 60px rgba(0,229,255,.08), 0 0 120px rgba(168,85,247,.06);
+  }
+
+  /* ===== 按钮 ===== */
+  .btn {
+    display: inline-block; cursor: pointer; border: none; border-radius: 12px;
+    padding: 14px 28px; font-size: 1rem; font-weight: 700;
+    transition: transform .15s, box-shadow .15s, filter .15s;
+    user-select: none;
+  }
+  .btn:hover  { transform: translateY(-2px); filter: brightness(1.15); }
+  .btn:active { transform: translateY(0);    filter: brightness(.9); }
+  .btn-cyan   { background: linear-gradient(135deg, #0891b2, #00e5ff); color: #000; box-shadow: 0 0 20px rgba(0,229,255,.35); }
+  .btn-purple { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; box-shadow: 0 0 20px rgba(168,85,247,.35); }
+  .btn-green  { background: linear-gradient(135deg, #15803d, #22c55e); color: #fff; box-shadow: 0 0 20px rgba(34,197,94,.35); }
+  .btn-yellow { background: linear-gradient(135deg, #b45309, #fbbf24); color: #000; box-shadow: 0 0 20px rgba(251,191,36,.35); }
+  .btn-red    { background: linear-gradient(135deg, #b91c1c, #ef4444); color: #fff; }
+  .btn-ghost  { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  /* ===== TITLE SCREEN ===== */
+  #screen-title .card { text-align: center; max-width: 580px; width: 90vw; }
+  .title-ship { font-size: 5rem; animation: float 3s ease-in-out infinite; display: block; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+  .title-h1 {
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 900;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin: 12px 0 6px;
+  }
+  .title-sub { color: var(--muted); font-size: .95rem; margin-bottom: 28px; }
+  .title-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+  .badge {
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    border-radius: 99px; padding: 5px 14px; font-size: .8rem; color: var(--muted);
+  }
+
+  /* ===== MAP SCREEN ===== */
+  #screen-map .inner {
+    max-width: 760px; width: 92vw;
+  }
+  .map-header { text-align: center; margin-bottom: 28px; }
+  .map-header h2 { font-size: 1.6rem; font-weight: 800; color: var(--cyan); }
+  .map-header p  { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+
+  .planets-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .planet-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px; cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
+  }
+  .planet-card::before {
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(circle at 50% 0%, rgba(0,229,255,.06), transparent 70%);
+    opacity:0; transition: opacity .3s;
+  }
+  .planet-card:hover::before { opacity: 1; }
+  .planet-card:hover { border-color: var(--cyan); transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,229,255,.12); }
+  .planet-card.locked { opacity: .45; cursor: not-allowed; }
+  .planet-card.locked:hover { transform: none; border-color: var(--border); box-shadow: none; }
+  .planet-card.locked::before { display: none; }
+  .planet-card.done { border-color: var(--green); }
+  .planet-card.done::before { background: radial-gradient(circle at 50% 0%, rgba(34,197,94,.06), transparent 70%); opacity:1; }
+  .planet-icon { font-size: 2.8rem; margin-bottom: 10px; display: block; }
+  .planet-num  { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .planet-name { font-size: 1rem; font-weight: 700; margin: 4px 0 8px; }
+  .planet-desc { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+  .planet-status {
+    position: absolute; top: 12px; right: 12px;
+    font-size: .72rem; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+  }
+  .status-locked { background: rgba(100,116,139,.2); color: var(--muted); }
+  .status-open   { background: rgba(0,229,255,.15); color: var(--cyan); }
+  .status-done   { background: rgba(34,197,94,.15); color: var(--green); }
+
+  /* Stars earned display */
+  .hud {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 99px; padding: 8px 20px; margin-bottom: 20px;
+    width: fit-content; margin-left: auto;
+  }
+  .hud-item { font-size: .85rem; display: flex; align-items: center; gap: 6px; }
+  .hud-item .val { font-weight: 700; color: var(--yellow); }
+
+  /* ===== LEVEL SCREEN ===== */
+  #screen-level {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  #screen-level .inner {
+    max-width: 820px; width: 100%; margin: auto;
+  }
+  .level-header {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 24px;
+  }
+  .level-header .back-btn {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 14px; cursor: pointer; color: var(--muted); font-size: .85rem;
+    transition: all .2s;
+  }
+  .level-header .back-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .level-header h2 { font-size: 1.4rem; font-weight: 800; }
+  .level-header .planet-emoji { font-size: 1.8rem; }
+
+  /* Story box */
+  .story-box {
+    background: linear-gradient(135deg, #0d1b2a, #111827);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; margin-bottom: 20px;
+  }
+  .story-box p { line-height: 1.8; font-size: .95rem; }
+  .story-box .speaker {
+    font-size: .75rem; color: var(--cyan); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px;
+  }
+  .chat-bubble {
+    background: rgba(0,229,255,.06); border-left: 3px solid var(--cyan);
+    border-radius: 0 12px 12px 0; padding: 12px 16px; margin: 12px 0;
+    font-size: .9rem; line-height: 1.7;
+  }
+  .chat-bubble.robot { border-color: var(--purple); background: rgba(168,85,247,.06); }
+
+  /* Concept highlight */
+  .concept-box {
+    background: rgba(251,191,36,.06); border: 1px solid rgba(251,191,36,.25);
+    border-radius: 14px; padding: 18px 20px; margin: 16px 0;
+  }
+  .concept-box .concept-title {
+    font-size: .75rem; color: var(--yellow); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px;
+  }
+  .concept-box p { font-size: .9rem; line-height: 1.7; }
+
+  /* Code block */
+  .code-block {
+    background: #060d18; border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin: 16px 0; overflow-x: auto;
+    font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: .85rem; line-height: 1.7;
+  }
+  .code-block .comment { color: #4a5568; }
+  .code-block .keyword { color: #a855f7; }
+  .code-block .string  { color: #22c55e; }
+  .code-block .func    { color: #00e5ff; }
+  .code-block .num     { color: #fbbf24; }
+
+  /* Quiz */
+  .quiz-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; margin-top: 20px;
+  }
+  .quiz-box h3 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; }
+  .quiz-question { font-size: .95rem; line-height: 1.7; margin-bottom: 18px; color: var(--text); }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-opt {
+    background: rgba(255,255,255,.04); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 18px; cursor: pointer; font-size: .9rem;
+    transition: all .2s; display: flex; align-items: center; gap: 10px;
+  }
+  .quiz-opt:hover { border-color: var(--cyan); background: rgba(0,229,255,.06); }
+  .quiz-opt.correct { border-color: var(--green) !important; background: rgba(34,197,94,.1) !important; }
+  .quiz-opt.wrong   { border-color: var(--red)   !important; background: rgba(239,68,68,.1)  !important; }
+  .quiz-opt .opt-letter {
+    width: 28px; height: 28px; border-radius: 8px; background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .8rem; flex-shrink: 0;
+  }
+  .quiz-feedback {
+    margin-top: 16px; padding: 14px 16px; border-radius: 12px;
+    font-size: .9rem; line-height: 1.6; display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.ok  { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: var(--green); }
+  .quiz-feedback.err { background: rgba(239,68,68,.1);  border: 1px solid rgba(239,68,68,.3);  color: #fca5a5; }
+
+  /* Simulator */
+  .sim-box {
+    background: #060d18; border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; margin: 20px 0;
+  }
+  .sim-title { font-size: .8rem; color: var(--cyan); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+  .sim-terminal {
+    background: #000; border-radius: 10px; padding: 16px;
+    font-family: monospace; font-size: .85rem; min-height: 120px; margin-bottom: 14px;
+    border: 1px solid #1a1a2e;
+  }
+  .sim-line { margin: 3px 0; }
+  .sim-line.user-line  { color: var(--cyan); }
+  .sim-line.agent-line { color: var(--purple); }
+  .sim-line.tool-line  { color: var(--yellow); }
+  .sim-line.result-line{ color: var(--green); }
+  .sim-line.think-line { color: var(--muted); font-style: italic; }
+  .sim-input-row { display: flex; gap: 10px; }
+  .sim-input {
+    flex: 1; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: .9rem;
+    outline: none;
+  }
+  .sim-input:focus { border-color: var(--cyan); }
+
+  /* Progress bar */
+  .progress-wrap { margin-top: 24px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--purple)); border-radius: 99px; transition: width .5s ease; }
+
+  /* Next btn */
+  .level-nav { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-bottom: 40px; }
+
+  /* ===== WIN SCREEN ===== */
+  #screen-win .card { text-align: center; max-width: 500px; width: 90vw; }
+  .win-emoji { font-size: 5rem; animation: spin 2s linear infinite; display: block; }
+  @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+  .win-title { font-size: 2rem; font-weight: 900; color: var(--yellow); margin: 16px 0 8px; }
+  .win-sub { color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+  .win-stars { font-size: 2.5rem; margin-bottom: 20px; }
+
+  /* ===== DRAG GAME ===== */
+  .drag-area {
+    display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0;
+  }
+  .drag-items { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; min-width: 200px; }
+  .drag-slots { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 200px; }
+  .drag-chip {
+    background: rgba(168,85,247,.15); border: 1px solid rgba(168,85,247,.4);
+    border-radius: 10px; padding: 10px 16px; cursor: grab; font-size: .85rem;
+    user-select: none; transition: all .2s; color: var(--text);
+  }
+  .drag-chip:hover { transform: scale(1.04); border-color: var(--purple); }
+  .drag-chip.dragging { opacity: .4; }
+  .drop-slot {
+    background: rgba(0,229,255,.04); border: 2px dashed rgba(0,229,255,.3);
+    border-radius: 10px; padding: 12px 16px; min-height: 46px;
+    font-size: .85rem; color: var(--muted); transition: all .2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .drop-slot.drag-over { border-color: var(--cyan); background: rgba(0,229,255,.1); }
+  .drop-slot.filled { border-style: solid; border-color: var(--green); background: rgba(34,197,94,.08); color: var(--text); }
+  .drop-slot .slot-label { font-size: .72rem; color: var(--muted); margin-right: 4px; }
+
+  /* Pipe animation */
+  .pipe-demo {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    background: #060d18; border-radius: 12px; padding: 16px; margin: 16px 0;
+    font-size: .85rem;
+  }
+  .pipe-node {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; text-align: center; min-width: 90px;
+    transition: all .4s; position: relative;
+  }
+  .pipe-node.active { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,229,255,.3); color: var(--cyan); }
+  .pipe-node.done   { border-color: var(--green); color: var(--green); }
+  .pipe-arrow { color: var(--muted); font-size: 1.2rem; }
+  .pipe-node .node-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+  .pipe-node .node-label{ font-size: .72rem; }
+
+  /* Tooltip */
+  [data-tip] { position: relative; cursor: help; border-bottom: 1px dashed var(--muted); }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: #1e3a5f; color: var(--text); border-radius: 8px;
+    padding: 6px 12px; font-size: .78rem; white-space: nowrap; z-index: 99;
+    border: 1px solid var(--border); pointer-events: none;
+  }
+
+  /* Responsive */
+  @media(max-width:600px){
+    .card { padding: 24px 20px; }
+    .planets-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<!-- ===== TITLE SCREEN ===== -->
+<div id="screen-title" class="screen active">
+  <div class="card">
+    <span class="title-ship">🚀</span>
+    <h1 class="title-h1">Agent 星际冒险</h1>
+    <p class="title-sub">和你的 AI 机器人搭档一起，探索宇宙、学会编程！</p>
+    <div class="title-badges">
+      <span class="badge">🌍 8 颗星球</span>
+      <span class="badge">⚡ Transformer</span>
+      <span class="badge">🏋️ 预训练/微调</span>
+      <span class="badge">🤖 Agent 开发</span>
+      <span class="badge">⭐ 收集星星</span>
+    </div>
+    <button class="btn btn-cyan" style="width:100%;font-size:1.1rem;padding:16px" onclick="goMap()">
+      🚀 开始冒险！
+    </button>
+    <p style="margin-top:14px;font-size:.8rem;color:var(--muted)">适合所有人 · 无需编程基础</p>
+  </div>
+</div>
+
+<!-- ===== MAP SCREEN ===== -->
+<div id="screen-map" class="screen">
+  <div class="inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h2 style="font-size:1.5rem;font-weight:800;color:var(--cyan)">🌌 银河地图</h2>
+        <p style="color:var(--muted);font-size:.85rem;margin-top:2px">选择一颗星球开始学习</p>
+      </div>
+      <div class="hud">
+        <div class="hud-item">⭐ 星星 <span class="val" id="hud-stars">0</span></div>
+        <div class="hud-item">🌍 星球 <span class="val" id="hud-planets">0/8</span></div>
+      </div>
+    </div>
+    <div class="planets-grid" id="planets-grid"></div>
+  </div>
+</div>
+
+<!-- ===== LEVEL SCREEN ===== -->
+<div id="screen-level" class="screen">
+  <div class="inner" id="level-inner"></div>
+</div>
+
+<!-- ===== WIN SCREEN ===== -->
+<div id="screen-win" class="screen">
+  <div class="card">
+    <span class="win-emoji">🏆</span>
+    <div class="win-title">太厉害了！</div>
+    <div class="win-stars" id="win-stars">⭐⭐⭐⭐⭐</div>
+    <p class="win-sub">
+      你已经征服了所有星球！<br>
+      从 Transformer 到预训练、后训练、微调，<br>
+      再到 Agent、工具调用、ReAct、记忆、多 Agent……<br>
+      你和爸爸都是 AI 宇宙顶级探险家了！🚀🏆
+    </p>
+    <button class="btn btn-cyan" style="width:100%" onclick="goMap()">再玩一次！</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STARS CANVAS
+   ============================================================ */
+(function(){
+  const c = document.getElementById('stars-canvas');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function resize(){ c.width=innerWidth; c.height=innerHeight; }
+  function init(){
+    resize();
+    stars = Array.from({length:180}, ()=>({
+      x: Math.random()*c.width, y: Math.random()*c.height,
+      r: Math.random()*1.5+.3, a: Math.random(), da: (Math.random()-.5)*.008
+    }));
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      s.a = Math.max(.1, Math.min(1, s.a+s.da));
+      if(s.a<=.1||s.a>=1) s.da*=-1;
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${s.a})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  init(); draw();
+})();
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
+const state = {
+  stars: 0,
+  planets: {}, // id -> { done: bool, stars: int }
+};
+
+/* ============================================================
+   PLANET DATA
+   ============================================================ */
+const PLANETS = [
+  {
+    id: 'p1', icon: '🌍', num: '星球 01', name: 'LLM 星', color: 'cyan',
+    desc: '认识 AI 大脑！了解语言模型是什么。',
+    status: 'open',
+    sections: [
+      {
+        type: 'story',
+        html: `
+          <div class="speaker">🚀 船长日志 — 第1天</div>
+          <p>你驾驶飞船来到了第一颗星球 —— <strong style="color:var(--cyan)">LLM 星</strong>。</p>
+          <p style="margin-top:10px">你的副驾驶机器人 <strong>ARIA</strong> 跳了出来说：</p>
+          <div class="chat-bubble robot">
+            🤖 ARIA：船长！这颗星球住着一个超级大脑！它叫 <strong>LLM</strong>（Large Language Model，大语言模型）。
+            它读过地球上几乎所有的书！所以你问它什么，它都能回答！
+          </div>
+          <p>你好奇地问道：</p>
+          <div class="chat-bubble">
+            👦 你：那它是怎么工作的？
+          </div>
+          <div class="chat-bubble robot">
+            🤖 ARIA：很简单！你给它一段话，它就预测下一个词最可能是什么，
+            然后再预测下下个词……就这样一个词一个词地接下去，就变成了一段完整的回答！
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '💡 核心概念',
+        html: `
+          <p><strong style="color:var(--cyan)">LLM = 大语言模型</strong></p>
+          <p style="margin-top:8px">它就像一个<span data-tip="读过几乎所有书的超级学生">超级读书机器</span>：</p>
+          <ul style="margin:10px 0 0 16px;line-height:2">
+            <li>📖 学过几乎所有人类写过的文字</li>
+            <li>🔮 每次预测「下一个词」来生成回答</li>
+            <li>💬 只能处理文字——不能自己上网、不能自己执行代码</li>
+          </ul>
+          <p style="margin-top:12px;color:var(--muted);font-size:.85rem">
+            ⚠️ 重点：LLM 本身<strong>只会说话</strong>，不会<strong>做事</strong>。这就是为什么我们需要 Agent！
+          </p>
+        `
+      },
+      {
+        type: 'pipe',
+        title: '🔁 LLM 工作流程',
+        nodes: [
+          {icon:'💬', label:'你的问题'},
+          {icon:'🧠', label:'LLM 思考'},
+          {icon:'📝', label:'预测词语'},
+          {icon:'✅', label:'输出答案'},
+        ]
+      },
+      {
+        type: 'quiz',
+        q: 'LLM 最擅长做什么事情？',
+        opts: ['自动上网搜索资料','控制机器人手臂','理解和生成文字','计算超级复杂的数学题'],
+        ans: 2,
+        feedback_ok: '🎉 完全正确！LLM 的核心能力就是理解和生成文字！它通过预测下一个词来工作。',
+        feedback_err: '再想想～LLM 的名字里有"Language"（语言），它最擅长的当然是文字！'
+      },
+      {
+        type: 'quiz',
+        q: 'LLM 自己能不能直接上网查资料？',
+        opts: ['能，它连接了整个互联网','不能，它只能处理给它的文字内容'],
+        ans: 1,
+        feedback_ok: '✅ 对！LLM 本身没有眼睛和手脚，所以需要 Agent 系统来帮它做事！',
+        feedback_err: 'LLM 训练完后就"离网"了，它的知识来自训练数据，不能实时上网哦！'
+      }
+    ]
+  },
+
+  {
+    id: 'p2', icon: '🔧', num: '星球 02', name: '工具星', color: 'purple',
+    desc: '给 AI 装上手脚！学习 Tool Use 工具调用。',
+    status: 'locked',
+    sections: [
+      {
+        type: 'story',
+        html: `
+          <div class="speaker">🚀 到达工具星！</div>
+          <p>飞船降落在一个到处都是机械臂和工具的星球。ARIA 激动地说：</p>
+          <div class="chat-bubble robot">
+            🤖 ARIA：船长！这就是赋予 AI 力量的秘密！
+            光靠说话没用，我们得给 LLM 安上<strong>工具（Tools）</strong>，让它能真正做事！
+          </div>
+          <div class="chat-bubble">
+            👦 你：什么样的工具？
+          </div>
+          <div class="chat-bubble robot">
+            🤖 ARIA：比如——搜索网络、查天气、操作文件、查数据库……
+            有了工具，LLM 就从"只会说"变成了"既会说又会做"！这就是 <strong>Tool Use（工具调用）</strong>！
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '🔧 Tool Use = 给 AI 装手脚',
+        html: `
+          <p>Tool Use 是 Agent 最核心的机制：</p>
+          <ul style="margin:10px 0 0 16px;line-height:2.2">
+            <li>🧠 LLM 决定<strong>要不要用工具</strong>、用<strong>哪个工具</strong>、传<strong>什么参数</strong></li>
+            <li>⚙️ 程序员写好工具的<strong>实际代码</strong></li>
+            <li>📨 工具把结果<strong>返回给 LLM</strong></li>
+            <li>💬 LLM 用结果生成<strong>最终回答</strong></li>
+          </ul>
+        `
+      },
+      {
+        type: 'drag',
+        title: '🎮 拖拽练习：给 Agent 配对工具！',
+        subtitle: '把左边的任务拖到右边正确的工具槽里',
+        items: [
+          {id:'d1', text:'🌤️ 查今天天气'},
+          {id:'d2', text:'📄 读取一个文件'},
+          {id:'d3', text:'🔍 搜索新闻'},
+          {id:'d4', text:'🗄️ 查询数据库'},
+        ],
+        slots: [
+          {id:'s1', label:'search_web()', ans:'d3'},
+          {id:'s2', label:'get_weather()', ans:'d1'},
+          {id:'s3', label:'read_file()', ans:'d2'},
+          {id:'s4', label:'query_db()', ans:'d4'},
+        ]
+      },
+      {
+        type: 'code',
+        title: '📟 看看真实的工具定义长什么样',
+        lines: [
+          {t:'comment', s:'# 定义一个工具 —— 就像给 AI 写说明书'},
+          {t:'normal',  s:'tool = {'},
+          {t:'string',  s:'    "name": "get_weather",'},
+          {t:'string',  s:'    "description": "查询某个城市的天气",'},
+          {t:'normal',  s:'    "input_schema": {'},
+          {t:'string',  s:'        "city": "城市名称，比如北京"'},
+          {t:'normal',  s:'    }'},
+          {t:'normal',  s:'}'},
+          {t:'comment', s:''},
+          {t:'comment', s:'# AI 读到这个说明书，就知道：'},
+          {t:'comment', s:'# 1. 这个工具叫什么  2. 用来干嘛  3. 需要什么参数'},
+        ]
+      },
+      {
+        type: 'quiz',
+        q: 'Tool Use 的作用是什么？',
+        opts: [
+          '让 LLM 变得更聪明，懂更多知识',
+          '让 LLM 能执行真实的操作，比如搜索、读文件',
+          '让 LLM 说话更流利',
+          '让 AI 学会开飞船'
+        ],
+        ans: 1,
+        feedback_ok: '🎉 完全正确！Tool Use 给 LLM 装上了"手脚"，让它能真正地做事！',
+        feedback_err: '再想想～ Tool Use 的目标不是让 AI 更聪明，而是让它能 **执行** 真实操作！'
+      }
+    ]
+  },
+
+  {
+    id: 'p3', icon: '🔁', num: '星球 03', name: 'ReAct 星', color: 'yellow',
+    desc: '学会 Agent 的思维方式：思考→行动→观察！',
+    status: 'locked',
+    sections: [
+      {
+        type: 'story',
+        html: `
+          <div class="speaker">🚀 进入 ReAct 星轨道</div>
+          <p>这颗星球的大气层里有奇怪的循环气流。ARIA 解释说：</p>
+          <div class="chat-bubble robot">
+            🤖 ARIA：这颗星球代表 Agent 最重要的思维模式——<strong>ReAct</strong>！
+            它不是一步到位，而是循环运作的：
+            <br><br>
+            🧠 <strong>Reason（思考）</strong>→ 🎯 <strong>Act（行动）</strong>→ 👀 <strong>Observe（观察）</strong>→ 再思考……
+          </div>
+          <div class="chat-bubble">
+            👦 你：就像我解数学题一样？看题→列式→算→检查答案？
+          </div>
+          <div class="chat-bubble robot">
+            🤖 ARIA：完全正确！你真聪明！Agent 就是这样一步一步解决问题的！
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '🔁 ReAct 循环',
+        html: `
+          <p><strong style="color:var(--yellow)">ReAct = Reasoning + Acting</strong></p>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+            <div style="background:rgba(0,229,255,.08);border-radius:10px;padding:12px 16px;border-left:3px solid var(--cyan)">
+              <strong>1. 🧠 思考（Reason）</strong><br>
+              <span style="color:var(--muted);font-size:.85rem">Agent 分析问题：我现在知道什么？我还缺什么信息？</span>
+            </div>
+            <div style="background:rgba(168,85,247,.08);border-radius:10px;padding:12px 16px;border-left:3px solid var(--purple)">
+              <strong>2. 🎯 行动（Act）</strong><br>
+              <span style="color:var(--muted);font-size:.85rem">决定调用哪个工具，传什么参数</span>
+            </div>
+            <div style="background:rgba(251,191,36,.08);border-radius:10px;padding:12px 16px;border-left:3px solid var(--yellow)">
+              <strong>3. 👀 观察（Observe）</strong><br>
+              <span style="color:var(--muted);font-size:.85rem">看工具返回的结果，判断任务是否完成</span>
+            </div>
+            <div style="background:rgba(34,197,94,.08);border-radius:10px;padding:12px 16px;border-left:3px solid var(--green)">
+              <strong>4. 🔄 重复或结束</strong><br>
+              <span style="color:var(--muted);font-size:.85rem">如果没完成，回到第1步继续；如果完成了，输出最终答案</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        type: 'sim',
+        title: '🎮 模拟器：亲手操控 Agent 完成任务！',
+        subtitle: '任务：查一查北京今天适不适合出门踢球',
+        steps: [
+          {
+            prompt: '点击「开始任务」让 Agent 开始思考',
+            btnText: '🧠 开始任务',
+            lines: [
+              {t:'think', s:'[Agent 思考] 用户想知道北京今天适不适合踢球...'},
+              {t:'think', s:'[Agent 思考] 我需要先查天气，才能判断。'},
+              {t:'think', s:'[Agent 决定] 调用工具: get_weather("北京")'},
+            ]
+          },
+          {
+            prompt: '工具正在执行，点击「获取结果」',
+            btnText: '⚙️ 执行工具',
+            lines: [
+              {t:'tool',   s:'[工具调用] get_weather("北京")'},
+              {t:'result', s:'[工具返回] 北京今天晴天，气温22度，微风'},
+            ]
+          },
+          {
+            prompt: '点击「生成回答」看 Agent 的最终判断',
+            btnText: '✅ 生成回答',
+            lines: [
+              {t:'think', s:'[Agent 观察] 晴天22度，微风——非常适合户外运动！'},
+              {t:'agent', s:'[Agent 回答] 今天北京晴天22度，微风，非常适合出门踢球！记得带水哦 ⚽'},
+            ]
+          }
+        ]
+      },
+      {
+        type: 'quiz',
+        q: 'ReAct 循环的顺序是什么？',
+        opts: [
+          '行动 → 思考 → 观察',
+          '思考 → 行动 → 观察',
+          '观察 → 行动 → 思考',
+          '直接输出答案，不需要循环'
+        ],
+        ans: 1,
+        feedback_ok: '🎯 完全正确！思考 → 行动 → 观察 → 再思考，这就是 Agent 解决问题的方式！',
+        feedback_err: '记住：要先 **思考**（我需要什么），再 **行动**（调用工具），再 **观察**（结果怎样）！'
+      }
+    ]
+  },
+
+  {
+    id: 'p4', icon: '🧠', num: '星球 04', name: '记忆星', color: 'green',
+    desc: '让 Agent 拥有记忆！短期记忆 vs 长期记忆。',
+    status: 'locked',
+    sections: [
+      {
+        type: 'story',
+        html: `
+          <div class="speaker">🚀 降落记忆星</div>
+          <p>这颗星球上到处都是水晶球，每个球里面都保存着一段记忆。ARIA 感慨地说：</p>
+          <div class="chat-bubble robot">
+            🤖 ARIA：Agent 如果没有记忆，每次对话都从零开始，这太糟糕了！
+            记忆系统分两种：<strong>短期记忆</strong>和<strong>长期记忆</strong>。
+          </div>
+          <div class="chat-bubble">
+            👦 你：就像我上课记笔记（短期），和回家后把知识记进大脑（长期）？
+          </div>
+          <div class="chat-bubble robot">
+            🤖 ARIA：哇！你这个比喻太完美了！完全正确！
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '🧠 两种记忆系统',
+        html: `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px">
+            <div style="background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:12px;padding:16px">
+              <div style="font-size:1.5rem;margin-bottom:8px">📋</div>
+              <strong style="color:var(--cyan)">短期记忆</strong>
+              <p style="font-size:.82rem;color:var(--muted);margin-top:6px;line-height:1.6">
+                就是「对话上下文」<br>
+                对话结束就消失<br>
+                像黑板，课后擦掉
+              </p>
+            </div>
+            <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px">
+              <div style="font-size:1.5rem;margin-bottom:8px">💾</div>
+              <strong style="color:var(--green)">长期记忆</strong>
+              <p style="font-size:.82rem;color:var(--muted);margin-top:6px;line-height:1.6">
+                存进数据库<br>
+                永久保存<br>
+                像课本，随时查
+              </p>
+            </div>
+          </div>
+          <div style="margin-top:14px;padding:12px 16px;background:rgba(251,191,36,.06);border-radius:10px;border:1px solid rgba(251,191,36,.2)">
+            <strong style="color:var(--yellow)">🔍 RAG</strong>（检索增强生成）= 让 Agent 在回答前先去查资料库，就像开卷考试！
+          </div>
+        `
+      },
+      {
+        type: 'quiz',
+        q: '你问 AI「我上次告诉你我叫什么名字？」它却说不知道。这是什么问题？',
+        opts: [
+          'AI 太笨了，需要换一个更聪明的',
+          '对话结束后短期记忆清空了，AI 没有长期记忆存你的名字',
+          'AI 故意不告诉你',
+          '网络问题导致数据丢失'
+        ],
+        ans: 1,
+        feedback_ok: '✅ 正确！这就是「短期记忆」的限制——对话结束就清空了。需要长期记忆系统才能记住跨对话的信息！',
+        feedback_err: '想想记忆的两种类型：对话内容属于「短期记忆」，对话结束后就消失了！'
+      },
+      {
+        type: 'quiz',
+        q: 'RAG 是什么？',
+        opts: [
+          '一种让 AI 变聪明的训练方法',
+          '让 Agent 在回答前先检索外部知识库',
+          '一种编程语言',
+          '机器人的型号名称'
+        ],
+        ans: 1,
+        feedback_ok: '🎉 太棒了！RAG = 检索增强生成，就像给 AI 一本可以随时查的参考书！',
+        feedback_err: 'RAG 的关键词是「检索」——让 Agent 在回答前先去查找相关资料！'
+      }
+    ]
+  },
+
+  {
+    id: 'p5', icon: '🌐', num: '星球 05', name: '多Agent星', color: 'red',
+    desc: '最终关卡！让多个 Agent 组成团队完成大任务！',
+    status: 'locked',
+    sections: [
+      {
+        type: 'story',
+        html: `
+          <div class="speaker">🚀 最终星球！</div>
+          <p>这颗巨大的星球上有无数个 Agent 机器人在协同工作，场面壮观！</p>
+          <div class="chat-bubble robot">
+            🤖 ARIA：船长！单个 Agent 能力有限，但如果把多个专业 Agent 组合起来，
+            就能完成超级复杂的任务！这就是<strong>多 Agent 系统</strong>！
+          </div>
+          <div class="chat-bubble">
+            👦 你：就像足球队？有守门员、前锋、中场……各有分工？
+          </div>
+          <div class="chat-bubble robot">
+            🤖 ARIA：完美比喻！有一个「指挥官 Agent」负责分配任务，
+            其他 Agent 各司其职，最后汇总结果！
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '🌐 多 Agent 系统架构',
+        html: `
+          <div style="text-align:center;margin:10px 0">
+            <div style="display:inline-block;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:12px;padding:10px 20px;font-weight:700;color:#fca5a5">
+              🎯 指挥官 Agent（Orchestrator）
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:4px;margin:8px 0;color:var(--muted)">↙ &nbsp; ↓ &nbsp; ↘</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px">
+            <div style="background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:10px;padding:12px;text-align:center;font-size:.82rem">
+              🔍<br><strong>搜索 Agent</strong><br><span style="color:var(--muted)">负责收集资料</span>
+            </div>
+            <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:12px;text-align:center;font-size:.82rem">
+              📊<br><strong>分析 Agent</strong><br><span style="color:var(--muted)">负责分析数据</span>
+            </div>
+            <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:12px;text-align:center;font-size:.82rem">
+              ✍️<br><strong>写作 Agent</strong><br><span style="color:var(--muted)">负责生成报告</span>
+            </div>
+          </div>
+          <p style="margin-top:14px;font-size:.85rem;color:var(--muted);line-height:1.7">
+            真实案例：你让 Agent「帮我分析今年的销售数据并写报告」——<br>
+            搜索 Agent 收集数据 → 分析 Agent 处理数字 → 写作 Agent 生成报告 → 指挥官汇总给你！
+          </p>
+        `
+      },
+      {
+        type: 'concept',
+        title: '🎯 你爸爸应该先做哪个练习项目？',
+        html: `
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+            <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:12px;padding:14px 16px">
+              <strong style="color:var(--green)">第1步 (本周就能做！)</strong><br>
+              <span style="font-size:.85rem;color:var(--muted)">用 Python + Claude API 写一个会查天气的小 Agent（5天）</span>
+            </div>
+            <div style="background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:12px;padding:14px 16px">
+              <strong style="color:var(--cyan)">第2步 (2周后)</strong><br>
+              <span style="font-size:.85rem;color:var(--muted)">做一个帮公司审查代码的 Agent（结合全栈背景！）</span>
+            </div>
+            <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:12px;padding:14px 16px">
+              <strong style="color:var(--purple)">第3步 (1个月后)</strong><br>
+              <span style="font-size:.85rem;color:var(--muted)">做一个多 Agent 自动测试系统（这个最值钱！）</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        type: 'quiz',
+        q: '多 Agent 系统中「指挥官 Agent」的主要作用是什么？',
+        opts: [
+          '自己完成所有任务，不需要其他 Agent',
+          '分配任务给其他专业 Agent，并汇总结果',
+          '只负责和用户聊天',
+          '控制飞船导航系统'
+        ],
+        ans: 1,
+        feedback_ok: '🏆 完美！指挥官 Agent 就像球队队长，负责战术分配，让每个 Agent 发挥专长！',
+        feedback_err: '指挥官不是"全能选手"，而是"分配任务的人"！'
+      },
+      {
+        type: 'quiz',
+        q: '完成了这个游戏，你学会了哪些概念？（选最全的）',
+        opts: [
+          '只学了 LLM 是什么',
+          'LLM + 工具调用 + ReAct + 记忆 + 多Agent，这是完整的 Agent 知识体系！',
+          '学会了如何制造真正的机器人',
+          '学会了怎么开飞船'
+        ],
+        ans: 1,
+        feedback_ok: '🚀🏆🌟 你太厉害了！你和爸爸都完整地了解了 Agent 开发的核心知识体系！冲冲冲！',
+        feedback_err: '回想一下，我们探索了 5 颗星球：LLM、工具调用、ReAct、记忆、多Agent！'
+      }
+    ]
+  },
+
+  // ==================== 新星球：Transformer ====================
+  {
+    id: 'p6', icon: '⚡', num: '星球 06', name: 'Transformer 星', color: 'cyan',
+    desc: '揭秘 AI 大脑的核心零件！Attention 注意力机制！',
+    status: 'locked',
+    sections: [
+      {
+        type: 'story',
+        html: `
+          <div class="speaker">🚀 发现隐藏星球！</div>
+          <p>ARIA 突然在雷达上发现了一颗之前没注意到的星球，闪烁着耀眼的光芒……</p>
+          <div class="chat-bubble robot">
+            🤖 ARIA：船长！这是 <strong style="color:var(--cyan)">Transformer 星</strong>！
+            这里藏着 LLM 大脑最核心的秘密——<strong>Transformer 架构</strong>！
+            现在几乎所有强大的 AI（GPT、Claude、Gemini）都用它！
+          </div>
+          <div class="chat-bubble">
+            👦 你：Transformer？像变形金刚吗？！
+          </div>
+          <div class="chat-bubble robot">
+            🤖 ARIA：哈哈！名字确实很酷！它是 2017 年 Google 的科学家们发明的，
+            论文名字叫《Attention Is All You Need》（只需要注意力）。
+            核心秘诀就是一种叫 <strong>Attention（注意力）</strong> 的机制！
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '👁️ Attention（注意力）是什么？',
+        html: `
+          <p>举个例子，读这句话：</p>
+          <div style="margin:14px 0;padding:14px 18px;background:rgba(0,229,255,.06);border-radius:12px;font-size:1rem;line-height:2">
+            「<strong>银行</strong>的利率下降了，我去<strong>河</strong>边钓鱼。」
+          </div>
+          <p style="font-size:.9rem;line-height:1.7">
+            人脑理解「银行」时，会<strong>注意到</strong>「利率」这个词，而不是「河」。<br>
+            理解「河」时，会注意到「钓鱼」，而不是「利率」。<br><br>
+            <strong style="color:var(--cyan)">Attention 机制就是让 AI 也能这样做！</strong><br>
+            处理每个词时，它会计算「我应该重点看哪些其他词」——这叫做 <strong>Self-Attention（自注意力）</strong>。
+          </p>
+          <div style="margin-top:14px;padding:12px 16px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:10px;font-size:.85rem;color:var(--muted)">
+            💡 在 Transformer 之前，AI 读句子是从左到右一个词一个词地处理，很容易忘记前面的内容。
+            Transformer 可以<strong>同时看所有词</strong>，并决定哪些词对理解当前词最重要！
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '🏗️ Transformer 的主要零件',
+        html: `
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+            <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(0,229,255,.06);border-radius:12px;padding:14px">
+              <span style="font-size:1.6rem;flex-shrink:0">🔢</span>
+              <div>
+                <strong style="color:var(--cyan)">Token & Embedding（词元化）</strong>
+                <p style="font-size:.82rem;color:var(--muted);margin-top:4px;line-height:1.6">把文字切成小块（Token），再变成数字向量。「你好」可能变成 [0.2, -0.7, 1.3, ...]</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(168,85,247,.06);border-radius:12px;padding:14px">
+              <span style="font-size:1.6rem;flex-shrink:0">👁️</span>
+              <div>
+                <strong style="color:var(--purple)">Multi-Head Attention（多头注意力）</strong>
+                <p style="font-size:.82rem;color:var(--muted);margin-top:4px;line-height:1.6">同时从多个角度分析词与词的关系，就像用好几双眼睛同时看！</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(34,197,94,.06);border-radius:12px;padding:14px">
+              <span style="font-size:1.6rem;flex-shrink:0">🔗</span>
+              <div>
+                <strong style="color:var(--green)">Feed Forward（前馈网络）</strong>
+                <p style="font-size:.82rem;color:var(--muted);margin-top:4px;line-height:1.6">每个位置独立地进行深度处理，存储和提取知识的地方</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(251,191,36,.06);border-radius:12px;padding:14px">
+              <span style="font-size:1.6rem;flex-shrink:0">📍</span>
+              <div>
+                <strong style="color:var(--yellow)">Positional Encoding（位置编码）</strong>
+                <p style="font-size:.82rem;color:var(--muted);margin-top:4px;line-height:1.6">告诉模型每个词在句子里的位置，因为 Attention 本身没有顺序感</p>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        type: 'pipe',
+        title: '⚡ Transformer 处理一句话的流程',
+        nodes: [
+          {icon:'📝', label:'输入文字'},
+          {icon:'🔢', label:'Token化'},
+          {icon:'👁️', label:'Self-Attention'},
+          {icon:'🔗', label:'前馈网络'},
+          {icon:'🔁', label:'重复N层'},
+          {icon:'✅', label:'输出结果'},
+        ]
+      },
+      {
+        type: 'quiz',
+        q: 'Transformer 的核心创新是什么？',
+        opts: [
+          '让 AI 从左到右一个个字地读，记住每个字',
+          'Self-Attention：处理每个词时同时参考所有其他词，判断哪些最重要',
+          '用更大的数据库存储所有答案',
+          '让 AI 用眼睛直接看图片'
+        ],
+        ans: 1,
+        feedback_ok: '🎉 完全正确！Self-Attention 是 Transformer 最核心的创新，让 AI 能理解上下文关系！',
+        feedback_err: '关键词是「同时看所有词」！Transformer 不是一个一个字读的，而是同时处理所有词，用 Attention 决定哪些词重要！'
+      },
+      {
+        type: 'quiz',
+        q: '「Attention Is All You Need」这篇论文的意思是？',
+        opts: [
+          'AI 需要人类时刻关注它',
+          '只需要注意力机制就能建造强大的语言模型，不需要老方法',
+          'AI 只能回答关于注意力的问题',
+          '训练 AI 需要非常专注的工程师'
+        ],
+        ans: 1,
+        feedback_ok: '⭐ 正确！这篇 2017 年的论文彻底改变了 AI 世界，证明仅靠 Attention 机制就能超越所有之前的方法！',
+        feedback_err: '这是一篇开创时代的论文标题，意思是「只需要注意力机制」就够了！'
+      }
+    ]
+  },
+
+  // ==================== 新星球：预训练 ====================
+  {
+    id: 'p7', icon: '🏋️', num: '星球 07', name: '预训练星', color: 'purple',
+    desc: '了解 AI 是怎么从零开始"上学"的！Pre-training！',
+    status: 'locked',
+    sections: [
+      {
+        type: 'story',
+        html: `
+          <div class="speaker">🚀 进入训练场星球</div>
+          <p>这颗星球上有一个巨大的图书馆，里面装着整个互联网的内容！ARIA 感慨道：</p>
+          <div class="chat-bubble robot">
+            🤖 ARIA：船长，你知道 Claude、GPT 这些 AI 是怎么变聪明的吗？
+            它们要经历好几个阶段的训练——第一步叫做 <strong>预训练（Pre-training）</strong>！
+          </div>
+          <div class="chat-bubble">
+            👦 你：预训练？就像我上学之前先上幼儿园？
+          </div>
+          <div class="chat-bubble robot">
+            🤖 ARIA：超棒的比喻！预训练就是让 AI 读海量文字，
+            学习语言的基础规律——就像小婴儿慢慢学会说话！
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '🏋️ 预训练（Pre-training）是什么？',
+        html: `
+          <p>预训练的目标很简单：<strong style="color:var(--purple)">给我前面的词，预测下一个词！</strong></p>
+          <div style="margin:14px 0;padding:16px;background:#060d18;border-radius:12px;font-family:monospace;font-size:.9rem;line-height:2">
+            <div>输入：「今天天气真的很」</div>
+            <div style="color:var(--purple)">预测：「好」✅  or  「差」✅  or  「飞机」❌</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+            <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:12px;padding:14px">
+              <strong style="color:var(--purple)">📚 训练数据</strong>
+              <ul style="margin-top:8px;font-size:.82rem;color:var(--muted);line-height:2;list-style:none">
+                <li>🌐 整个互联网的网页</li>
+                <li>📖 数十亿本书</li>
+                <li>💻 GitHub 所有代码</li>
+                <li>📰 新闻、论文……</li>
+              </ul>
+            </div>
+            <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px">
+              <strong style="color:#fca5a5">💸 训练成本</strong>
+              <ul style="margin-top:8px;font-size:.82rem;color:var(--muted);line-height:2;list-style:none">
+                <li>🖥️ 数千张 GPU</li>
+                <li>⏱️ 几个月时间</li>
+                <li>💰 数亿到数十亿美元</li>
+                <li>⚡ 耗电量惊人</li>
+              </ul>
+            </div>
+          </div>
+          <p style="margin-top:14px;font-size:.85rem;color:var(--muted);line-height:1.7">
+            预训练结束后，模型学会了语言规律和大量知识，但还不会「听话」——
+            就像一个读了很多书但不知道怎么和人好好交流的书呆子 😄
+          </p>
+        `
+      },
+      {
+        type: 'concept',
+        title: '📊 训练过程：Loss（损失）是什么？',
+        html: `
+          <p style="line-height:1.7;font-size:.9rem">训练时，模型每次猜词都会得到一个分数，叫 <strong style="color:var(--yellow)">Loss（损失）</strong>：</p>
+          <div style="display:flex;flex-direction:column;gap:8px;margin:14px 0">
+            <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,.08);border-radius:10px;padding:12px 16px">
+              <span style="font-size:1.4rem">✅</span>
+              <div style="font-size:.85rem">猜对了 → Loss 低 → 模型参数<strong style="color:var(--green)">几乎不变</strong></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;background:rgba(239,68,68,.08);border-radius:10px;padding:12px 16px">
+              <span style="font-size:1.4rem">❌</span>
+              <div style="font-size:.85rem">猜错了 → Loss 高 → 通过<strong style="color:var(--red)">反向传播</strong>调整参数，下次猜得更准</div>
+            </div>
+          </div>
+          <p style="font-size:.85rem;color:var(--muted);line-height:1.7">
+            这个过程重复<strong>几万亿次</strong>，模型就变得越来越聪明了！<br>
+            模型里的「参数」就像大脑里的神经元连接强度，GPT-4 大约有 <strong style="color:var(--cyan)">1.8 万亿</strong>个参数！
+          </p>
+        `
+      },
+      {
+        type: 'quiz',
+        q: '预训练阶段，AI 的主要学习任务是什么？',
+        opts: [
+          '学会画画和音乐创作',
+          '根据前面的文字，预测下一个词，不断降低预测错误率',
+          '学会和人类礼貌对话',
+          '记住所有人的名字和生日'
+        ],
+        ans: 1,
+        feedback_ok: '🎯 完全正确！就是这么简单的任务——预测下一个词——重复万亿次，AI 就学会了理解语言！',
+        feedback_err: '预训练只做一件事：给你前面的词，猜下一个词！简单但威力巨大！'
+      }
+    ]
+  },
+
+  // ==================== 新星球：后训练与微调 ====================
+  {
+    id: 'p8', icon: '🎓', num: '星球 08', name: '后训练星', color: 'yellow',
+    desc: '预训练之后怎么让 AI 变得有礼貌又有用？微调+RLHF！',
+    status: 'locked',
+    sections: [
+      {
+        type: 'story',
+        html: `
+          <div class="speaker">🚀 降落后训练星</div>
+          <p>这颗星球上有很多人类老师，正在手把手地给 AI 打分和教导……</p>
+          <div class="chat-bubble robot">
+            🤖 ARIA：船长，预训练完的 AI 很有知识，但它不知道怎么「好好说话」。
+            它可能会说出奇怪、有害、或者答非所问的内容。
+            所以需要<strong>后训练（Post-training）</strong>来打磨它！
+          </div>
+          <div class="chat-bubble">
+            👦 你：就像一个孩子读了很多书，但还需要学礼仪和做人？
+          </div>
+          <div class="chat-bubble robot">
+            🤖 ARIA：完美！后训练包括几个步骤：<br>
+            <strong>SFT（有监督微调）→ RLHF（人类反馈强化学习）→ 对齐</strong>
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '🎓 后训练三步走',
+        html: `
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:6px">
+            <div style="background:rgba(0,229,255,.08);border-left:4px solid var(--cyan);border-radius:0 12px 12px 0;padding:16px">
+              <strong style="color:var(--cyan)">第1步：SFT（监督微调）</strong>
+              <p style="font-size:.85rem;color:var(--muted);margin-top:6px;line-height:1.7">
+                人类写出「完美的问答对」，让模型照着学。<br>
+                问：「如何做西红柿炒蛋？」→ 人类写出标准答案 → 模型模仿<br>
+                <em>就像老师给学生做示范题！</em>
+              </p>
+            </div>
+            <div style="background:rgba(168,85,247,.08);border-left:4px solid var(--purple);border-radius:0 12px 12px 0;padding:16px">
+              <strong style="color:var(--purple)">第2步：RLHF（人类反馈强化学习）</strong>
+              <p style="font-size:.85rem;color:var(--muted);margin-top:6px;line-height:1.7">
+                让模型生成多个答案，人类给这些答案排名（A > B > C）。<br>
+                用排名训练一个「打分模型」，再用打分模型引导 AI 生成更好的答案。<br>
+                <em>就像考试后老师给卷子打分，AI 从反馈中改进！</em>
+              </p>
+            </div>
+            <div style="background:rgba(34,197,94,.08);border-left:4px solid var(--green);border-radius:0 12px 12px 0;padding:16px">
+              <strong style="color:var(--green)">第3步：对齐（Alignment）</strong>
+              <p style="font-size:.85rem;color:var(--muted);margin-top:6px;line-height:1.7">
+                确保 AI 的行为符合人类的价值观：<br>
+                ✅ 有帮助（Helpful）&nbsp;&nbsp; ✅ 无害（Harmless）&nbsp;&nbsp; ✅ 诚实（Honest）<br>
+                <em>Anthropic 把这三个叫做 HHH 原则！</em>
+              </p>
+            </div>
+          </div>
+        `
+      },
+      {
+        type: 'concept',
+        title: '🔧 微调（Fine-tuning）是什么？',
+        html: `
+          <p style="line-height:1.7;font-size:.9rem">
+            微调 = 在预训练好的大模型基础上，用<strong>少量专业数据</strong>继续训练，
+            让它在特定领域变得更强。
+          </p>
+          <div style="margin:14px 0">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:14px;font-size:.82rem">
+                <div style="font-size:1.2rem;margin-bottom:6px">🏥</div>
+                <strong style="color:var(--yellow)">医疗微调</strong>
+                <p style="color:var(--muted);margin-top:4px">用医学论文和病历微调，让 AI 成为医疗专家</p>
+              </div>
+              <div style="background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);border-radius:12px;padding:14px;font-size:.82rem">
+                <div style="font-size:1.2rem;margin-bottom:6px">💼</div>
+                <strong style="color:var(--cyan)">法律微调</strong>
+                <p style="color:var(--muted);margin-top:4px">用法律文书微调，让 AI 成为法律助手</p>
+              </div>
+              <div style="background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.2);border-radius:12px;padding:14px;font-size:.82rem">
+                <div style="font-size:1.2rem;margin-bottom:6px">💻</div>
+                <strong style="color:var(--purple)">代码微调</strong>
+                <p style="color:var(--muted);margin-top:4px">用代码数据微调，让 AI 更擅长写程序</p>
+              </div>
+              <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:14px;font-size:.82rem">
+                <div style="font-size:1.2rem;margin-bottom:6px">🎮</div>
+                <strong style="color:var(--green)">游戏微调</strong>
+                <p style="color:var(--muted);margin-top:4px">用游戏对话微调，让 AI 成为游戏 NPC</p>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:.83rem;color:var(--muted);line-height:1.7">
+            💡 微调比从头训练<strong>便宜得多</strong>！
+            因为大模型已经懂语言了，只需要少量数据教它「方向」就行。
+            这也是为什么你爸爸可以用微调做出很有价值的 AI 产品！
+          </p>
+        `
+      },
+      {
+        type: 'pipe',
+        title: '🗺️ AI 从出生到成熟的完整路线',
+        nodes: [
+          {icon:'📚', label:'海量数据'},
+          {icon:'🏋️', label:'预训练'},
+          {icon:'👨‍🏫', label:'SFT微调'},
+          {icon:'👥', label:'RLHF'},
+          {icon:'✨', label:'成熟AI'},
+        ]
+      },
+      {
+        type: 'quiz',
+        q: 'RLHF 中，人类的角色是什么？',
+        opts: [
+          '人类帮 AI 写代码',
+          '人类对 AI 的多个回答进行排名，让 AI 从人类偏好中学习',
+          '人类替代 AI 回答问题',
+          '人类告诉 AI 哪些词是禁止用的'
+        ],
+        ans: 1,
+        feedback_ok: '✅ 完全正确！RLHF 就是让人类当「评分员」，AI 通过学习人类的喜好来改进自己！',
+        feedback_err: 'RLHF = 人类反馈强化学习。关键是人类给 AI 的多个回答打分排名，AI 从这些排名中学习！'
+      },
+      {
+        type: 'quiz',
+        q: '微调（Fine-tuning）和预训练最大的区别是？',
+        opts: [
+          '微调用的数据更多，时间更长',
+          '微调在预训练模型基础上用少量专业数据继续训练，成本低得多',
+          '微调只能在手机上做，预训练需要超级计算机',
+          '微调改变了模型的基础结构'
+        ],
+        ans: 1,
+        feedback_ok: '🎉 太棒了！微调就像在已经读过大量书的聪明人基础上，再教他某个专业技能——效率高、成本低！',
+        feedback_err: '关键词是「少量专业数据」和「成本低」！微调不需要从头开始，站在预训练的肩膀上！'
+      }
+    ]
+  }
+];
+
+/* ============================================================
+   SCREEN MANAGER
+   ============================================================ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function goMap() {
+  renderMap();
+  showScreen('map');
+}
+
+/* ============================================================
+   MAP RENDER
+   ============================================================ */
+function renderMap() {
+  document.getElementById('hud-stars').textContent = state.stars;
+  const done = Object.values(state.planets).filter(p => p.done).length;
+  document.getElementById('hud-planets').textContent = done + '/' + PLANETS.length;
+
+  const grid = document.getElementById('planets-grid');
+  grid.innerHTML = '';
+
+  PLANETS.forEach((p, i) => {
+    const unlocked = true; // 所有关卡都可以直接进入
+    const done = state.planets[p.id]?.done;
+    const statusText = done ? '已完成' : unlocked ? '可探索' : '未解锁';
+    const statusClass = done ? 'status-done' : unlocked ? 'status-open' : 'status-locked';
+    const cardClass = done ? 'done' : unlocked ? '' : 'locked';
+
+    const card = document.createElement('div');
+    card.className = 'planet-card ' + cardClass;
+    card.innerHTML = `
+      <span class="planet-status ${statusClass}">${statusText}</span>
+      <span class="planet-icon">${p.icon}</span>
+      <div class="planet-num">${p.num}</div>
+      <div class="planet-name">${p.name}</div>
+      <div class="planet-desc">${p.desc}</div>
+    `;
+    if (unlocked) card.onclick = () => openLevel(p.id);
+    grid.appendChild(card);
+  });
+}
+
+/* ============================================================
+   LEVEL RENDER
+   ============================================================ */
+let currentPlanetId = null;
+let currentSectionIdx = 0;
+let quizAnswered = {}; // section idx -> bool
+let dragState = {};
+
+function openLevel(planetId) {
+  currentPlanetId = planetId;
+  currentSectionIdx = 0;
+  quizAnswered = {};
+  dragState = {};
+  renderLevel();
+  showScreen('level');
+}
+
+function renderLevel() {
+  const planet = PLANETS.find(p => p.id === currentPlanetId);
+  const totalSections = planet.sections.length;
+  const progress = Math.round((currentSectionIdx / totalSections) * 100);
+
+  let html = `
+    <div class="level-header">
+      <span class="back-btn" onclick="goMap()">← 地图</span>
+      <span class="planet-emoji">${planet.icon}</span>
+      <h2>${planet.name}</h2>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>进度</span><span>${currentSectionIdx}/${totalSections}</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+    </div>
+  `;
+
+  if (currentSectionIdx >= totalSections) {
+    html += renderCompletion(planet);
+  } else {
+    const section = planet.sections[currentSectionIdx];
+    html += renderSection(section, currentSectionIdx);
+    html += `<div class="level-nav">`;
+    if (currentSectionIdx > 0) {
+      html += `<button class="btn btn-ghost" onclick="prevSection()">← 上一步</button>`;
+    }
+    if (section.type !== 'quiz') {
+      html += `<button class="btn btn-cyan" onclick="nextSection()">继续 →</button>`;
+    }
+    if (section.type === 'drag') {
+      html += `<button class="btn btn-green" onclick="checkDrag()">检查答案 ✓</button>`;
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById('level-inner').innerHTML = html;
+  initSectionInteractions(planet.sections[currentSectionIdx]);
+}
+
+function renderSection(section, idx) {
+  switch(section.type) {
+    case 'story':   return renderStory(section);
+    case 'concept': return renderConcept(section);
+    case 'pipe':    return renderPipe(section);
+    case 'quiz':    return renderQuiz(section, idx);
+    case 'drag':    return renderDrag(section);
+    case 'code':    return renderCode(section);
+    case 'sim':     return renderSim(section);
+    default: return '';
+  }
+}
+
+function renderStory(s) {
+  return `<div class="story-box">${s.html}</div>`;
+}
+
+function renderConcept(s) {
+  return `
+    <div class="concept-box">
+      <div class="concept-title">${s.title}</div>
+      ${s.html}
+    </div>
+  `;
+}
+
+function renderPipe(s) {
+  const nodes = s.nodes.map((n,i) => `
+    <div class="pipe-node" id="pipe-node-${i}">
+      <span class="node-icon">${n.icon}</span>
+      <span class="node-label">${n.label}</span>
+    </div>
+    ${i < s.nodes.length-1 ? '<span class="pipe-arrow">→</span>' : ''}
+  `).join('');
+  return `
+    <div class="concept-box">
+      <div class="concept-title">${s.title}</div>
+      <div class="pipe-demo">${nodes}</div>
+      <div style="text-align:center;margin-top:8px">
+        <button class="btn btn-purple" onclick="animatePipe(${s.nodes.length})">▶ 播放动画</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderCode(s) {
+  const lines = s.lines.map(l => {
+    const cls = l.t === 'comment' ? 'comment' : l.t === 'string' ? 'string' : l.t === 'keyword' ? 'keyword' : 'normal';
+    return `<div class="sim-line ${cls === 'normal' ? '' : cls}">${escHtml(l.s)}</div>`;
+  }).join('');
+  return `
+    <div class="concept-box">
+      <div class="concept-title">${s.title}</div>
+      <div class="code-block">${lines}</div>
+    </div>
+  `;
+}
+
+function renderQuiz(s, idx) {
+  const opts = s.opts.map((o, i) => {
+    const letter = ['A','B','C','D'][i];
+    return `
+      <div class="quiz-opt" id="quiz-opt-${i}" onclick="answerQuiz(${i}, ${s.ans}, '${escAttr(s.feedback_ok)}', '${escAttr(s.feedback_err)}', ${idx})">
+        <span class="opt-letter">${letter}</span>
+        <span>${o}</span>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="quiz-box">
+      <h3>🎯 闯关测试</h3>
+      <div class="quiz-question">${s.q}</div>
+      <div class="quiz-options">${opts}</div>
+      <div class="quiz-feedback" id="quiz-feedback-${idx}"></div>
+    </div>
+  `;
+}
+
+function renderDrag(s) {
+  const items = s.items.map(item => `
+    <div class="drag-chip" id="chip-${item.id}" draggable="true" data-id="${item.id}">${item.text}</div>
+  `).join('');
+  const slots = s.slots.map(slot => `
+    <div class="drop-slot" id="slot-${slot.id}" data-slot="${slot.id}" data-ans="${slot.ans}">
+      <span class="slot-label">${slot.label}</span>
+      <span id="slot-content-${slot.id}"></span>
+    </div>
+  `).join('');
+  return `
+    <div class="concept-box">
+      <div class="concept-title">${s.title}</div>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:14px">${s.subtitle}</p>
+      <div class="drag-area">
+        <div class="drag-items" id="drag-items">${items}</div>
+        <div class="drag-slots">${slots}</div>
+      </div>
+      <div id="drag-result" style="margin-top:12px"></div>
+    </div>
+  `;
+}
+
+function renderSim(s) {
+  return `
+    <div class="sim-box">
+      <div class="sim-title">${s.title}</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:12px">${s.subtitle}</p>
+      <div class="sim-terminal" id="sim-terminal">
+        <div class="sim-line" style="color:var(--muted)">// 等待开始...</div>
+      </div>
+      <div id="sim-btn-area">
+        <button class="btn btn-purple" onclick="simStep(0)">${s.steps[0].btnText}</button>
+      </div>
+      <p id="sim-hint" style="font-size:.82rem;color:var(--muted);margin-top:8px">${s.steps[0].prompt}</p>
+    </div>
+  `;
+}
+
+function renderCompletion(planet) {
+  const earned = state.planets[planet.id]?.stars || 3;
+  const stars = '⭐'.repeat(earned);
+  return `
+    <div class="card" style="text-align:center;margin-top:20px">
+      <div style="font-size:4rem;margin-bottom:12px">${planet.icon}</div>
+      <div style="font-size:1.6rem;font-weight:900;color:var(--yellow);margin-bottom:8px">
+        ${planet.name} 已征服！
+      </div>
+      <div style="font-size:2rem;margin-bottom:16px">${stars}</div>
+      <p style="color:var(--muted);margin-bottom:24px;line-height:1.7">
+        太棒了！你学会了这颗星球的所有知识！<br>继续探索下一颗星球吧！
+      </p>
+      <button class="btn btn-cyan" style="width:100%" onclick="goMap()">返回银河地图 →</button>
+    </div>
+  `;
+}
+
+/* ============================================================
+   INTERACTIONS
+   ============================================================ */
+function initSectionInteractions(section) {
+  if (!section) return;
+  if (section.type === 'drag') initDrag(section);
+  if (section.type === 'sim') {
+    // Store steps globally for sim
+    window._simSteps = section.steps;
+    window._simStep = 0;
+  }
+}
+
+// Pipe animation
+function animatePipe(count) {
+  let i = 0;
+  // Reset all
+  for(let j=0;j<count;j++){
+    const n = document.getElementById('pipe-node-'+j);
+    if(n){ n.classList.remove('active','done'); }
+  }
+  const interval = setInterval(() => {
+    if(i > 0){
+      const prev = document.getElementById('pipe-node-'+(i-1));
+      if(prev){ prev.classList.remove('active'); prev.classList.add('done'); }
+    }
+    const cur = document.getElementById('pipe-node-'+i);
+    if(cur){ cur.classList.add('active'); }
+    i++;
+    if(i >= count){ clearInterval(interval); }
+  }, 600);
+}
+
+// Quiz
+function answerQuiz(chosen, correct, feedbackOk, feedbackErr, idx) {
+  if(quizAnswered[idx]) return;
+  quizAnswered[idx] = true;
+
+  document.querySelectorAll('.quiz-opt').forEach((el, i) => {
+    el.onclick = null;
+    if(i === correct) el.classList.add('correct');
+    else if(i === chosen) el.classList.add('wrong');
+  });
+
+  const fb = document.getElementById('quiz-feedback-' + idx);
+  if(chosen === correct) {
+    fb.className = 'quiz-feedback show ok';
+    fb.textContent = feedbackOk;
+    // Add next button
+    const nav = document.querySelector('.level-nav');
+    if(nav) {
+      nav.innerHTML = `
+        <button class="btn btn-ghost" onclick="prevSection()">← 上一步</button>
+        <button class="btn btn-cyan" onclick="nextSection()">继续 →</button>
+      `;
+    }
+  } else {
+    fb.className = 'quiz-feedback show err';
+    fb.textContent = feedbackErr;
+    setTimeout(() => {
+      document.querySelectorAll('.quiz-opt').forEach(el => {
+        el.classList.remove('wrong');
+      });
+      quizAnswered[idx] = false;
+      document.querySelectorAll('.quiz-opt').forEach((el, i) => {
+        el.onclick = () => answerQuiz(i, correct, feedbackOk, feedbackErr, idx);
+      });
+      fb.className = 'quiz-feedback';
+    }, 2500);
+  }
+}
+
+// Sim
+window._simSteps = [];
+window._simStep = 0;
+
+function simStep(step) {
+  const steps = window._simSteps;
+  if(step >= steps.length) return;
+
+  const terminal = document.getElementById('sim-terminal');
+  const s = steps[step];
+
+  // Append lines with delay
+  s.lines.forEach((line, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'sim-line ' + (
+        line.t === 'user'   ? 'user-line'   :
+        line.t === 'agent'  ? 'agent-line'  :
+        line.t === 'tool'   ? 'tool-line'   :
+        line.t === 'result' ? 'result-line' :
+        'think-line'
+      );
+      div.textContent = line.s;
+      terminal.appendChild(div);
+      terminal.scrollTop = terminal.scrollHeight;
+
+      // After last line of last step
+      if(i === s.lines.length - 1) {
+        const nextStep = step + 1;
+        const btnArea = document.getElementById('sim-btn-area');
+        const hint = document.getElementById('sim-hint');
+        if(nextStep < steps.length) {
+          btnArea.innerHTML = `<button class="btn btn-purple" onclick="simStep(${nextStep})">${steps[nextStep].btnText}</button>`;
+          if(hint) hint.textContent = steps[nextStep].prompt;
+        } else {
+          btnArea.innerHTML = `<span style="color:var(--green);font-weight:700">✅ 任务完成！Agent 成功运行！</span>`;
+          if(hint) hint.textContent = '你已经完整体验了一次 ReAct 循环！点击"继续"进入测试。';
+          // Enable next
+          const nav = document.querySelector('.level-nav');
+          if(nav && !nav.querySelector('.btn-cyan')) {
+            nav.innerHTML += `<button class="btn btn-cyan" onclick="nextSection()">继续 →</button>`;
+          }
+        }
+      }
+    }, i * 500);
+  });
+}
+
+// Drag & Drop
+function initDrag(section) {
+  const chips = document.querySelectorAll('.drag-chip');
+  const slots = document.querySelectorAll('.drop-slot');
+  let dragging = null;
+
+  chips.forEach(chip => {
+    chip.addEventListener('dragstart', e => {
+      dragging = chip;
+      chip.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', chip.dataset.id);
+    });
+    chip.addEventListener('dragend', () => {
+      chip.classList.remove('dragging');
+    });
+  });
+
+  slots.forEach(slot => {
+    slot.addEventListener('dragover', e => {
+      e.preventDefault();
+      slot.classList.add('drag-over');
+    });
+    slot.addEventListener('dragleave', () => {
+      slot.classList.remove('drag-over');
+    });
+    slot.addEventListener('drop', e => {
+      e.preventDefault();
+      slot.classList.remove('drag-over');
+      const chipId = e.dataTransfer.getData('text/plain');
+      const chip = document.getElementById('chip-' + chipId);
+      if(!chip) return;
+
+      const content = document.getElementById('slot-content-' + slot.dataset.slot);
+      // Remove from previous slot if any
+      const prev = Object.entries(dragState).find(([s, c]) => c === chipId);
+      if(prev) {
+        dragState[prev[0]] = null;
+        document.getElementById('slot-content-' + prev[0]).textContent = '';
+        document.getElementById('slot-' + prev[0]).classList.remove('filled');
+      }
+      // Place
+      dragState[slot.dataset.slot] = chipId;
+      content.textContent = chip.textContent;
+      slot.classList.add('filled');
+      chip.style.opacity = '.3';
+      chip.draggable = false;
+    });
+  });
+}
+
+function checkDrag() {
+  const planet = PLANETS.find(p => p.id === currentPlanetId);
+  const section = planet.sections[currentSectionIdx];
+  let allCorrect = true;
+  section.slots.forEach(slot => {
+    const placed = dragState[slot.id];
+    const slotEl = document.getElementById('slot-' + slot.id);
+    if(placed === slot.ans) {
+      slotEl.style.borderColor = 'var(--green)';
+    } else {
+      slotEl.style.borderColor = 'var(--red)';
+      allCorrect = false;
+    }
+  });
+
+  const result = document.getElementById('drag-result');
+  if(allCorrect) {
+    result.innerHTML = '<span style="color:var(--green);font-weight:700">🎉 全部正确！你完全理解工具匹配了！</span>';
+    // show next
+    const nav = document.querySelector('.level-nav');
+    if(nav && !nav.querySelector('.btn-cyan')) {
+      nav.innerHTML += `<button class="btn btn-cyan" onclick="nextSection()">继续 →</button>`;
+    }
+  } else {
+    result.innerHTML = '<span style="color:var(--red)">有些不对哦，红色的重新想想～</span>';
+    setTimeout(() => {
+      section.slots.forEach(slot => {
+        document.getElementById('slot-' + slot.id).style.borderColor = '';
+      });
+      result.innerHTML = '';
+    }, 2000);
+  }
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function nextSection() {
+  const planet = PLANETS.find(p => p.id === currentPlanetId);
+  currentSectionIdx++;
+  if(currentSectionIdx >= planet.sections.length) {
+    // Complete planet
+    if(!state.planets[currentPlanetId]) state.planets[currentPlanetId] = {};
+    state.planets[currentPlanetId].done = true;
+    state.planets[currentPlanetId].stars = 3;
+    state.stars += 3;
+
+    // Check if all done
+    const allDone = PLANETS.every(p => state.planets[p.id]?.done);
+    if(allDone) {
+      document.getElementById('win-stars').textContent = '⭐'.repeat(state.stars > 15 ? 15 : state.stars);
+      showScreen('win');
+      return;
+    }
+  }
+  renderLevel();
+  document.getElementById('screen-level').scrollTop = 0;
+}
+
+function prevSection() {
+  if(currentSectionIdx > 0) {
+    currentSectionIdx--;
+    renderLevel();
+    document.getElementById('screen-level').scrollTop = 0;
+  }
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return s.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
