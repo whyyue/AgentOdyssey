@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-03-23
+
+### 🏛️ Added - Empire Series Begins!
+- **新增"帝国篇"关卡系列**：基于真实开源项目 EDICT
+- **p17-empire-1.js**：三省六部架构基础
+  - 简单模式：小明的班级管理系统故事
+  - 困难模式：三省六部 Multi-Agent 架构实现
+  - 地狱模式：EDICT 项目深度解析
+    - 制度化协作 vs 自由协作
+    - 权限矩阵设计
+    - 门下省封驳机制
+    - 与 CrewAI/AutoGen 的对比
+- **设计文档**：`docs/empire-series-design.md`
+  - 完整的 5 个关卡规划（p17-p21）
+  - 每个关卡的详细设计
+  - 学习路径和游戏化设计
+
+### 📚 Documentation
+- 添加帝国篇设计文档
+- 更新 README 包含新关卡说明
+- 更新星球数量：16 → 17
+
+### 🎯 Learning Content
+- 基于真实项目 [EDICT](https://github.com/cft0808/edict) 的最佳实践
+- 三省六部：1300 年前的制度，现代 AI 的架构
+- 分权制衡、强制审核、完全可观测
+
+---
+
 ## [3.1.0] - 2026-03-23
 
 ### 🔥 Added - Hell Mode Unlocked!
