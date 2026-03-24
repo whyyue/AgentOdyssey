@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-03-24
+
+### 📡 Added - Empire Series p19!
+- **新增\"帝国星 3\"关卡**：实时观测：Event-Driven 架构
+- **p19-empire-3.js**：
+  - 简单模式：班级公告板类比、发布者 vs 订阅者、推模式 vs 拉模式
+  - 困难模式：Event 数据结构（trace_id/event_id）、EventBus 实现（通配符 + asyncio.gather 并行）、Agent 发布 thought/state 事件、WebSocket 推送 + 历史回放
+  - 地狱模式：三层可观测性（Thoughts SSE/Todos WebSocket/Events append-only）、Append-Only EventStore（SQLite + replay + tail）、token 级流式 SSE、REST+WebSocket+SSE 三协议分工架构
+
+### 📚 Documentation
+- 更新 README 包含 p19 关卡说明
+- 更新星球数量：18 → 19
+
+---
+
 ## [3.3.0] - 2026-03-24
 
 ### ⚖️ Added - Empire Series p18!

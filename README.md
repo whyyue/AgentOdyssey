@@ -79,6 +79,7 @@ agent-quest/
    - 🎓 毕业星：完整架构与最佳实践
    - 🏛️ **帝国星 1：三省六部架构** 🆕
    - ⚖️ **帝国星 2：制度设计** 🆕
+   - 📡 **帝国星 3：实时观测** 🆕
 
 3. **核心系统**
    - 难度切换器（实时切换，无需重新加载）
@@ -182,6 +183,11 @@ python -m http.server 8000
 - **简单模式**：恭喜毕业、下一步做什么、学习建议
 - **困难模式**：完整 Agent 架构、生产环境最佳实践、持续改进
 
+### 📡 帝国星 3：实时观测 🆕
+- **简单模式**：班级公告板故事、发布者 vs 订阅者概念
+- **困难模式**：Event 数据结构、EventBus 实现（通配符订阅 + 并行通知）、Agent 发布事件、WebSocket 实时推送 Dashboard
+- **地狱模式** 🔥：三层可观测性（Thoughts/Todos/Events）、生产级 Append-Only EventStore、SSE 流式推送（token 级）、REST+WebSocket+SSE 三协议分工、EDICT Dashboard 数据架构
+
 ### ⚖️ 帝国星 2：制度设计 🆕
 - **简单模式**：红绿灯状态机、分权制衡的学校故事
 - **困难模式**：TaskState 枚举、VALID_TRANSITIONS 白名单、权限矩阵代码实现、真实任务时间线
@@ -268,7 +274,7 @@ MIT License
 
 ---
 
-**当前版本**：v3.3.0 - Empire Series p18
+**当前版本**：v3.4.0 - Empire Series p19
 
 **最后更新**：2026-03-23
 
