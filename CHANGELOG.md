@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-03-24
+
+### 👑 Added - Empire Series Complete!
+- **帝国篇全部 5 关完成**（p17-p21），星球总数 19 → 21
+
+- **p20-empire-4.js**：质量保障：门下省审核机制
+  - 简单模式：作业检查员故事、早发现早修复的价值
+  - 困难模式：MenxiaAgent 三维审核 Prompt（可行性/完整性/安全性）、review_with_retry 封驳循环、ZhongshuAgent 收到反馈后修改方案、为什么门下省需要不同 temperature
+  - 地狱模式：ReviewCriteria 量化评分（维度权重+最低分门槛）、人工介入协议（24h 超时+审计记录+三种决策）、审核效能指标分析
+
+- **p21-empire-5.js**：实战项目：构建完整帝国系统
+  - 简单模式：班级任务助手蓝图、帝国篇五关总结
+  - 困难模式：完整项目文件结构、ImperialWorkflow 串联所有步骤（sm+审核+并行执行+异常处理）、FastAPI 异步任务入口+WebSocket Dashboard
+  - 地狱模式：Token 预算系统（阶段分配+模型分级+Prompt缓存）、Saga 模式（补偿操作+幂等性）、五层知识图谱、ACID vs Saga 本质取舍
+
+### 🎓 Empire Series Summary
+- 5 关卡覆盖架构层/控制层/观测层/质量层/工程层
+- 基于真实开源项目 EDICT（github.com/cft0808/edict）
+- 三级难度：故事类比 → 工程实现 → 生产最佳实践
+
+### 📚 Documentation
+- 更新 README 包含全部帝国篇关卡说明
+- 更新星球数量：19 → 21
+- 版本升级到 v4.0.0
+
+---
+
 ## [3.4.0] - 2026-03-24
 
 ### 📡 Added - Empire Series p19!
