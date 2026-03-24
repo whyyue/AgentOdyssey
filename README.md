@@ -6,7 +6,7 @@
 
 一个互动式的 AI Agent 学习游戏，支持三级难度分级（简单/困难/地狱），适合所有年龄段的学习者。
 
-🎮 **[在线体验](https://whyyue.github.io/AgentOdyssey/)** | 📖 **[变更日志](CHANGELOG.md)** | 🤝 **[贡献指南](#贡献)**
+🎮 **[在线体验](https://whyyue.github.io/AgentOdyssey/)** | 📖 **[变更日志](CHANGELOG.md)** | 📐 **[设计文档](docs/DESIGN.md)** | 🤝 **[贡献指南](#贡献)**
 
 ---
 
