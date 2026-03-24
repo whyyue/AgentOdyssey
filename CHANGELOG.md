@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-03-24
+
+### ⚖️ Added - Empire Series p18!
+- **新增\"帝国星 2\"关卡**：制度设计：状态机与分权制衡
+- **p18-empire-2.js**：
+  - 简单模式：红绿灯状态机类比、学校角色分权故事
+  - 困难模式：TaskState 枚举 + VALID_TRANSITIONS 白名单、权限矩阵实现、调用审计日志、真实 EDICT 任务流转时间线（含封驳场景）
+  - 地狱模式：生产级 TaskStateMachine（asyncio.Lock + 不可变 flow_log + EventBus）、EDICT Task JSON Schema、分布式状态机深层问题（乐观锁/幂等性/Saga/状态爆炸/Append-only 合规审计）
+
+### 📚 Documentation
+- 更新 README 包含 p18 关卡说明
+- 更新星球数量：17 → 18
+
+---
+
 ## [3.2.0] - 2026-03-23
 
 ### 🏛️ Added - Empire Series Begins!
