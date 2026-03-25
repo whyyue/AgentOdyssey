@@ -3,7 +3,6 @@
 /* ============================================================
    QUIZ INTERACTIONS
    ============================================================ */
-let quizAnswered = {};
 
 function answerQuiz(chosen, correct, feedbackOk, feedbackErr, idx) {
   if(quizAnswered[idx]) return;

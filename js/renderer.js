@@ -41,6 +41,7 @@ let currentSectionIdx = 0;
 function openLevel(planetId) {
   currentPlanetId = planetId;
   currentSectionIdx = 0;
+  quizAnswered = {};
   renderLevel();
   showScreen('level');
 }
@@ -234,10 +235,10 @@ function prevSection() {
 
 function switchDifficulty(diff) {
   const planet = PLANETS.find(p => p.id === currentPlanetId);
-  // 检查该星球是否有对应难度
   if (diff === 'hell' && !planet.difficulties.hell) return;
   state.currentDifficulty = diff;
-  currentSectionIdx = 0; // 重置进度
+  currentSectionIdx = 0;
+  quizAnswered = {};
   renderLevel();
 }
 
