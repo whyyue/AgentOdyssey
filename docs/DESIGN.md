@@ -1,6 +1,6 @@
 # 🚀 AgentOdyssey - 项目设计文档（总览）
 
-> **当前版本**：v4.0.0 | **星球总数**：21 颗 | **最后更新**：2026-03-24
+> **当前版本**：v4.1.0 | **星球总数**：21 颗 | **最后更新**：2026-03-25
 
 ---
 
@@ -88,23 +88,23 @@ PLANETS.push({
 | P2 | 🔧 | 工具星 1 | 工具定义、JSON Schema、参数规范 | ❌ |
 | P3 | 🔧 | 工具星 2 | 工具执行、参数验证、超时、重试 | ❌ |
 | P4 | 🔁 | ReAct 星 1 | 思考→行动→观察循环、消息历史管理 | ❌ |
-| P5 | 🔁 | ReAct 星 2 | 多步推理、Chain-of-Thought、System Prompt | ❌ |
+| P5 | 🔁 | ReAct 星 2 | 多步推理、Chain-of-Thought、System Prompt | ✅ 《ReAct》论文（普林斯顿+Google） |
 | P6 | 🧠 | 记忆星 1 | 短期记忆、Context 压缩、滑动窗口 | ❌ |
-| P7 | 🧠 | 记忆星 2 | 长期记忆、向量数据库、Embedding、RAG | ❌ |
-| P8 | 🌐 | 多 Agent 星 | Supervisor/Pipeline 模式、架构设计 | ❌ |
+| P7 | 🧠 | 记忆星 2 | 长期记忆、向量数据库、Embedding、RAG | ✅ 《RAG》论文（Meta AI） |
+| P8 | 🌐 | 多 Agent 星 | Supervisor/Pipeline 模式、架构设计 | ✅ 《CAMEL》论文（KAUST） |
 
 ### 🔬 深度篇（P9-P16）— 底层原理 + 实战开发
 
 | 星球 | 图标 | 名称 | 核心内容 | 地狱模式 |
 |------|------|------|---------|---------|
 | P9 | ⚡ | Transformer 星 | Self-Attention、Q/K/V、Multi-Head | ✅ 《Attention is All You Need》论文 |
-| P10 | 🏋️ | 预训练星 | 训练循环、Loss 函数、反向传播 | ❌ |
-| P11 | 🎓 | 后训练星 | SFT、RLHF、对齐技术 | ❌ |
-| P12 | 🌤️ | 实战星 1 | 天气助手 Agent 完整实现 | ❌ |
-| P13 | 🔍 | 实战星 2 | 代码审查 Agent、多文件并行 | ❌ |
-| P14 | 🔗 | 框架星 1 | LangChain vs LangGraph | ❌ |
-| P15 | 🤖 | 框架星 2 | AutoGen vs CrewAI | ❌ |
-| P16 | 🎓 | 毕业星 | 完整 Agent 架构、生产最佳实践 | ❌ |
+| P10 | 🏋️ | 预训练星 | 训练循环、Loss 函数、反向传播 | ✅ 《GPT-3》论文（OpenAI） |
+| P11 | 🎓 | 后训练星 | SFT、RLHF、对齐技术 | ✅ 《InstructGPT》论文（OpenAI） |
+| P12 | 🌤️ | 实战星 1 | 天气助手 Agent 完整实现 | ✅ 生产级：超时/成本控制/监控指标 |
+| P13 | 🔍 | 实战星 2 | 代码审查 Agent、多文件并行 | ✅ CI/CD 集成：GitHub Actions + 增量审查 |
+| P14 | 🔗 | 框架星 1 | LangChain vs LangGraph | ✅ Pregel 模型、Checkpointing、子图 |
+| P15 | 🤖 | 框架星 2 | AutoGen vs CrewAI | ✅ GroupChat 协议、奉承问题、框架横向对比 |
+| P16 | 🎓 | 毕业星 | 完整 Agent 架构、生产最佳实践 | ✅ Agent 评估体系：LLM-as-Judge + 多维度评分 |
 
 ### 🏛️ 帝国篇（P17-P21）— 生产级 Multi-Agent 系统
 
@@ -129,7 +129,17 @@ PLANETS.push({
 | 🔴 地狱 | 研究者、架构师 | 论文级推导、生产级实现、真实项目源码 | 完整实现 + 工程细节 |
 
 **地狱模式开放状态：**
+- P5 ReAct 星 2：✅ 已开放（ReAct 论文，普林斯顿+Google）
+- P7 记忆星 2：✅ 已开放（RAG 论文，Meta AI）
+- P8 多 Agent 星：✅ 已开放（CAMEL 论文，KAUST）
 - P9 Transformer 星：✅ 已开放（Attention 论文）
+- P10 预训练星：✅ 已开放（GPT-3 论文）
+- P11 后训练星：✅ 已开放（InstructGPT 论文）
+- P12 实战星 1：✅ 已开放（生产级天气 Agent）
+- P13 实战星 2：✅ 已开放（CI/CD 代码审查集成）
+- P14 框架星 1：✅ 已开放（LangGraph 源码级理解）
+- P15 框架星 2：✅ 已开放（多 Agent 框架深度对比）
+- P16 毕业星：✅ 已开放（Agent 评估体系）
 - P17 帝国星 1：✅ 已开放（EDICT 架构）
 - P18 帝国星 2：✅ 已开放（状态机工程实践）
 - P19 帝国星 3：✅ 已开放（可观测性架构）
@@ -176,9 +186,13 @@ P21 工程层 → 成本+可靠性    → 解决"怎么真正上线"
    - Cost 星：大规模部署的成本优化
 
 2. **深度篇地狱模式补全**
-   - P10 预训练：GPT-3 技术报告解读
-   - P11 后训练：InstructGPT 论文解读
-   - P8 多 Agent：CAMEL 论文解读
+   - ✅ P5 ReAct 星 2：ReAct 论文解读（已完成）
+   - ✅ P7 记忆星 2：RAG 论文解读（已完成）
+   - ✅ P8 多 Agent 星：CAMEL 论文解读（已完成）
+   - ✅ P10 预训练：GPT-3 技术报告解读（已完成）
+   - ✅ P11 后训练：InstructGPT 论文解读（已完成）
+   - ✅ P12-P16：生产级实战内容（已完成）
+   - ❌ P1-P4、P6：待补充
 
 3. **功能增强**
    - 代码编辑器（可在浏览器内运行 Python）

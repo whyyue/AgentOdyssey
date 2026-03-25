@@ -82,6 +82,11 @@ body {
 }
 
 /* ===== MAP SCREEN ===== */
+#screen-map {
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: 40px 0;
+}
 #screen-map .inner {
   max-width: 760px; width: 92vw;
 }
