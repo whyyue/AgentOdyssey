@@ -9,7 +9,16 @@ function renderMap() {
   document.getElementById('hud-planets').textContent = done + '/' + PLANETS.length;
 
   const grid = document.getElementById('planets-grid');
+  const gridParent = grid.parentElement;
+
+  // 清空 grid
   grid.innerHTML = '';
+
+  // 移除旧的成就面板（如果存在）
+  const oldPanel = gridParent.querySelector('.achievements-panel');
+  if (oldPanel) {
+    oldPanel.remove();
+  }
 
   // 添加成就面板（安全检查）
   if (typeof ACHIEVEMENTS !== 'undefined' && typeof getAchievementProgress === 'function') {
@@ -38,7 +47,8 @@ function renderMap() {
           }).join('')}
         </div>
       `;
-      grid.appendChild(achievementsPanel);
+      // 插入到 grid 之前
+      gridParent.insertBefore(achievementsPanel, grid);
     } catch (e) {
       console.error('Error rendering achievements:', e);
     }

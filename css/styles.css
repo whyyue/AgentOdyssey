@@ -914,12 +914,14 @@ body {
   line-height: 1.4;
 }
 
+
 .achievements-panel {
   background: rgba(0,0,0,.2);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 20px;
-  margin: 20px 0;
+  margin-bottom: 30px;
+  width: 100%;
 }
 
 .achievements-header {
@@ -941,9 +943,24 @@ body {
 }
 
 .achievements-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  display: flex;
   gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.achievements-grid::-webkit-scrollbar {
+  height: 8px;
+}
+
+.achievements-grid::-webkit-scrollbar-track {
+  background: rgba(0,0,0,.2);
+  border-radius: 4px;
+}
+
+.achievements-grid::-webkit-scrollbar-thumb {
+  background: var(--cyan);
+  border-radius: 4px;
 }
 
 .achievement-card {
@@ -953,8 +970,9 @@ body {
   padding: 16px;
   text-align: center;
   transition: all .3s;
+  min-width: 140px;
+  flex-shrink: 0;
 }
-
 .achievement-card.unlocked {
   border-color: var(--yellow);
   background: rgba(251,191,36,.1);

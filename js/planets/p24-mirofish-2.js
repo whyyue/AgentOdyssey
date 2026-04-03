@@ -379,8 +379,8 @@ console.log(li_si_persona);`,
 4. 保持一致性，避免矛盾
 
 **输出格式：**
-```
-{name}，[年龄]，[职业]。
+\`\`\`
+\${name}，[年龄]，[职业]。
 
 **背景：**
 [详细背景]
@@ -402,7 +402,7 @@ console.log(li_si_persona);`,
 • [习惯 1]
 • [习惯 2]
 ...
-```
+\`\`\`
 """
 
     response = llm.generate(prompt)
