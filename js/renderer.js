@@ -11,33 +11,37 @@ function renderMap() {
   const grid = document.getElementById('planets-grid');
   grid.innerHTML = '';
 
-  // 添加成就面板
-  if (typeof ACHIEVEMENTS !== 'undefined') {
-    const progress = getAchievementProgress();
-    const unlockedAchievements = getUnlockedAchievements();
+  // 添加成就面板（安全检查）
+  if (typeof ACHIEVEMENTS !== 'undefined' && typeof getAchievementProgress === 'function') {
+    try {
+      const progress = getAchievementProgress();
+      const unlockedAchievements = getUnlockedAchievements();
 
-    const achievementsPanel = document.createElement('div');
-    achievementsPanel.className = 'achievements-panel';
-    achievementsPanel.innerHTML = `
-      <div class="achievements-header">
-        <div class="achievements-title">🏆 成就系统</div>
-        <div class="achievements-progress">${progress.unlocked}/${progress.total} (${progress.percentage}%)</div>
-      </div>
-      <div class="achievements-grid">
-        ${ACHIEVEMENTS.map(a => {
-          const unlocked = state.achievements && state.achievements[a.id]?.unlocked;
-          return `
-            <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
-              <div class="achievement-card-icon">${a.icon}</div>
-              <div class="achievement-card-name">${a.name}</div>
-              <div class="achievement-card-desc">${a.description}</div>
-              ${!unlocked ? '<div class="achievement-card-locked">🔒 未解锁</div>' : ''}
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-    grid.appendChild(achievementsPanel);
+      const achievementsPanel = document.createElement('div');
+      achievementsPanel.className = 'achievements-panel';
+      achievementsPanel.innerHTML = `
+        <div class="achievements-header">
+          <div class="achievements-title">🏆 成就系统</div>
+          <div class="achievements-progress">${progress.unlocked}/${progress.total} (${progress.percentage}%)</div>
+        </div>
+        <div class="achievements-grid">
+          ${ACHIEVEMENTS.map(a => {
+            const unlocked = state.achievements && state.achievements[a.id]?.unlocked;
+            return `
+              <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
+                <div class="achievement-card-icon">${a.icon}</div>
+                <div class="achievement-card-name">${a.name}</div>
+                <div class="achievement-card-desc">${a.description}</div>
+                ${!unlocked ? '<div class="achievement-card-locked">🔒 未解锁</div>' : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+      grid.appendChild(achievementsPanel);
+    } catch (e) {
+      console.error('Error rendering achievements:', e);
+    }
   }
 
   PLANETS.forEach((p, i) => {
