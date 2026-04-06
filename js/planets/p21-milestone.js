@@ -98,5 +98,11 @@ const MILESTONE_3 = {
   ]
 };
 
-// 使用说明：
-// 将这个 milestone section 添加到 p21-empire-5.js 的 sections 数组末尾
+// 自动注入到 p21 的 easy/hard sections 末尾
+(function () {
+  if (typeof PLANETS === 'undefined') return;
+  const planet = PLANETS.find(p => p.id === 'p21');
+  if (!planet) return;
+  if (planet.difficulties.easy) planet.difficulties.easy.sections.push(MILESTONE_3);
+  if (planet.difficulties.hard) planet.difficulties.hard.sections.push(MILESTONE_3);
+})();

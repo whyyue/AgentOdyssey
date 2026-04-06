@@ -76,65 +76,73 @@ function runChallenge(challengeId) {
   const feedbackEl = document.getElementById(`${challengeId}-feedback`);
 
   const code = codeEl.value;
-
-  // 显示输出区域
   outputEl.style.display = 'block';
-  resultEl.textContent = '运行中...';
+  resultEl.textContent = '检查中...';
 
-  // 模拟代码执行（实际项目中需要后端支持或使用 Web Worker）
   setTimeout(() => {
-    try {
-      // 简单的代码验证示例
-      if (code.includes('chunk_text') && code.includes('return')) {
-        resultEl.textContent = '✅ 代码运行成功！\n\n输出：\n["chunk1", "chunk2", "chunk3"]';
-        feedbackEl.className = 'challenge-feedback success';
-        feedbackEl.textContent = '🎉 太棒了！你成功实现了文本分块功能！';
+    // 从当前关卡数据中获取 validate 函数
+    const idx = parseInt(challengeId.replace('challenge-', ''));
+    const planet = PLANETS.find(p => p.id === currentPlanetId);
+    const section = planet && planet.difficulties[state.currentDifficulty]
+      ? planet.difficulties[state.currentDifficulty].sections[idx]
+      : null;
 
-        // 解锁下一步按钮
-        const nav = document.querySelector('.level-nav');
-        if (nav && !nav.querySelector('.btn-cyan')) {
-          nav.innerHTML += `<button class="btn btn-cyan" onclick="nextSection()">继续 →</button>`;
-        }
-      } else {
-        resultEl.textContent = '❌ 代码有问题，请检查：\n- 是否定义了 chunk_text 函数？\n- 是否有 return 语句？';
-        feedbackEl.className = 'challenge-feedback error';
-        feedbackEl.textContent = '再试试看！检查一下函数定义和返回值。';
-      }
-    } catch (e) {
-      resultEl.textContent = `❌ 运行错误：\n${e.message}`;
-      feedbackEl.className = 'challenge-feedback error';
-      feedbackEl.textContent = '代码有语法错误，请仔细检查！';
+    let result;
+    if (section && typeof section.validate === 'function') {
+      result = section.validate(code);
+    } else {
+      // 兜底：检查代码非空
+      result = code.trim().length > 20
+        ? { ok: true, msg: '✅ 代码已提交！' }
+        : { ok: false, msg: '代码太短，请补全后再提交。' };
     }
-  }, 500);
+
+    resultEl.textContent = result.ok ? '✅ 验证通过' : '❌ 还需改进';
+    feedbackEl.className = `challenge-feedback ${result.ok ? 'success' : 'error'}`;
+    feedbackEl.textContent = result.msg;
+
+    if (result.ok) {
+      const nav = document.querySelector('.level-nav');
+      if (nav && !nav.querySelector('.btn-cyan')) {
+        nav.innerHTML += `<button class="btn btn-cyan" onclick="nextSection()">继续 →</button>`;
+      }
+    }
+  }, 400);
 }
 
 // Debug: 检查调试结果
 function checkDebug(debugId) {
   const codeEl = document.getElementById(`${debugId}-code`);
   const feedbackEl = document.getElementById(`${debugId}-feedback`);
-
   const code = codeEl.value;
 
-  // 简单的 bug 检查示例
-  const fixes = [];
-  if (code.includes('await generateProfile()')) fixes.push('✅ 修复了 await 缺失');
-  if (code.includes('if (profile)') || code.includes('if (!profile)')) fixes.push('✅ 添加了 null 检查');
+  // 从当前关卡数据中获取 validate 函数
+  const idx = parseInt(debugId.replace('debug-', ''));
+  const planet = PLANETS.find(p => p.id === currentPlanetId);
+  const section = planet && planet.difficulties[state.currentDifficulty]
+    ? planet.difficulties[state.currentDifficulty].sections[idx]
+    : null;
 
-  if (fixes.length >= 2) {
-    feedbackEl.className = 'debug-feedback success';
-    feedbackEl.innerHTML = `
-      <div style="font-weight:700;margin-bottom:8px">🎉 所有 bug 都修复了！</div>
-      ${fixes.map(f => `<div>${f}</div>`).join('')}
-    `;
+  let result;
+  if (section && typeof section.validate === 'function') {
+    result = section.validate(code);
+  } else {
+    // 兜底：检查代码非空
+    result = code.trim().length > 20
+      ? { ok: true, msg: '✅ 修复完成！' }
+      : { ok: false, msg: '请先修改代码再提交。' };
+  }
 
-    // 解锁下一步
+  feedbackEl.className = `debug-feedback ${result.ok ? 'success' : 'error'}`;
+  feedbackEl.innerHTML = result.ok
+    ? `<div style="font-weight:700;margin-bottom:8px">🎉 修复成功！</div><div>${result.msg}</div>`
+    : `<div>${result.msg}</div>`;
+
+  if (result.ok) {
     const nav = document.querySelector('.level-nav');
     if (nav && !nav.querySelector('.btn-cyan')) {
       nav.innerHTML += `<button class="btn btn-cyan" onclick="nextSection()">继续 →</button>`;
     }
-  } else {
-    feedbackEl.className = 'debug-feedback error';
-    feedbackEl.textContent = `还有 ${2 - fixes.length} 个 bug 没有修复。提示：检查 async/await 和 null 检查。`;
   }
 }
 

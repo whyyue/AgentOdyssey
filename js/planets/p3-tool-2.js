@@ -128,6 +128,52 @@ PLANETS.push({
           ans: 0,
           feedback_ok: '✅ 完全正确！LLM 能根据错误信息调整策略，这是 Agent 自我修复的关键！',
           feedback_err: '错误信息是 LLM 自我修复的关键！它能根据错误调整策略。'
+        },
+        {
+          type: 'debug',
+          title: '🐛 Debug：修复工具执行器的 Bug',
+          description: '下面的工具执行器有两个 Bug：一是除以零没有处理，二是错误信息没有正确返回给 LLM。找出并修复它们！',
+          buggy_code: `def execute_tool(tool_name, tool_input):
+    if tool_name == "calculator":
+        a = tool_input["a"]
+        b = tool_input["b"]
+        op = tool_input["op"]
+
+        if op == "+": result = a + b
+        elif op == "-": result = a - b
+        elif op == "*": result = a * b
+        elif op == "/": result = a / b  # Bug 1: 没有处理除以零
+
+        return result  # Bug 2: 应该返回字符串格式，且要处理异常
+
+    raise Exception("Unknown tool")  # Bug 3: 异常没有被捕获返回给 LLM`,
+          fixed_code: `def execute_tool(tool_name, tool_input):
+    try:
+        if tool_name == "calculator":
+            a = tool_input["a"]
+            b = tool_input["b"]
+            op = tool_input["op"]
+
+            if op == "+": result = a + b
+            elif op == "-": result = a - b
+            elif op == "*": result = a * b
+            elif op == "/":
+                if b == 0:
+                    return "错误：除数不能为零"  # Fix 1: 处理除以零
+                result = a / b
+            else:
+                return f"错误：不支持的运算符 {op}"
+
+            return str(result)  # Fix 2: 返回字符串
+
+        return f"错误：未知工具 {tool_name}"  # Fix 3: 返回错误而非抛出异常
+    except Exception as e:
+        return f"工具执行失败：{str(e)}"  # 兜底错误处理`,
+          hints: [
+            'Bug 1：当 b=0 时，a/b 会抛出 ZeroDivisionError',
+            'Bug 2：工具结果应该是字符串，方便 LLM 理解',
+            'Bug 3：异常应该被捕获并以错误消息形式返回，而不是让程序崩溃'
+          ]
         }
       ]
     }

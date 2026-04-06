@@ -89,15 +89,11 @@ const MILESTONE_1 = {
   ]
 };
 
-// 使用说明：
-// 将这个 milestone section 添加到 p8-multi-agent.js 的 sections 数组末尾
-// 例如：
-// easy: {
-//   sections: [
-//     { type: 'story', ... },
-//     { type: 'concept', ... },
-//     ...
-//     { type: 'quiz', ... },
-//     MILESTONE_1  // 添加在这里
-//   ]
-// }
+// 自动注入到 p8 的 easy/hard sections 末尾
+(function () {
+  if (typeof PLANETS === 'undefined') return;
+  const planet = PLANETS.find(p => p.id === 'p8');
+  if (!planet) return;
+  if (planet.difficulties.easy) planet.difficulties.easy.sections.push(MILESTONE_1);
+  if (planet.difficulties.hard) planet.difficulties.hard.sections.push(MILESTONE_1);
+})();

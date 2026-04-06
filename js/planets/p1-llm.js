@@ -142,6 +142,34 @@ print(response.content[0].text)`,
           ans: 1,
           feedback_ok: '✅ 正确！Context Window 决定了 LLM 能处理多长的上下文。超过限制就会报错。',
           feedback_err: 'Context Window 是关于"记忆长度"的概念，不是速度或准确性！'
+        },
+        {
+          type: 'sandbox',
+          title: '🎛️ 参数调节沙盒：感受 Temperature 的影响',
+          description: '拖动滑块，观察不同参数组合下 LLM 的输出风格变化。',
+          sliders: [
+            { id: 'temperature', label: 'Temperature', min: 0, max: 1, step: 0.1, default: 0.7, unit: '' },
+            { id: 'max_tokens', label: 'Max Tokens', min: 50, max: 500, step: 50, default: 200, unit: '' }
+          ],
+          visualize: function(vals) {
+            const t = parseFloat(vals.temperature);
+            const style = t < 0.3 ? '确定性强，输出稳定可预测，适合代码生成、数据提取' :
+                          t < 0.7 ? '平衡模式，兼顾创造性与准确性，适合通用对话' :
+                                    '高创造性，输出多样有趣，适合写作、头脑风暴';
+            const bar = Math.round(t * 10);
+            const filled = '█'.repeat(bar);
+            const empty = '░'.repeat(10 - bar);
+            return `Temperature: ${t}  [${filled}${empty}]
+风格：${style}
+
+Max Tokens: ${vals.max_tokens}
+预计输出：约 ${Math.round(vals.max_tokens * 0.75)} 个汉字
+
+示例 Prompt："给我讲一个故事"
+${t < 0.3 ? '→ 输出：从前有一个小村庄，村里住着一位老农夫...' :
+  t < 0.7 ? '→ 输出：在遥远的星际边疆，一艘孤独的飞船漂泊着...' :
+             '→ 输出：时间是一条倒流的河，鱼儿逆水而上，寻找那个从未存在的起点...'}`;
+          }
         }
       ]
     }

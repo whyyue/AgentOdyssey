@@ -88,88 +88,112 @@ PLANETS.push({
         {
           type: 'story',
           html: `
-            <div class="speaker">🚀 ReAct 星（技术版）</div>
+            <div class="speaker">🔍 Hard 模式：诊断一个坏掉的 Agent</div>
             <div class="chat-bubble robot">
-              🤖 ARIA：船长！让我给你讲讲 ReAct 循环的技术实现。
-              这是 Agent 系统的核心循环，需要仔细处理每个步骤。
+              🤖 ARIA：船长，我们收到了一份故障报告。<br><br>
+              有一个 ReAct Agent 在执行"查询天气 → 推荐穿衣 → 查询明天天气"这个三步任务时，
+              总是在第二步就停下来直接回答，根本没有继续调用工具。<br><br>
+              你能找出问题在哪里吗？
             </div>
           `
         },
         {
-          type: 'concept',
-          title: '🔁 ReAct 循环的关键要素',
-          html: `
-            <p>实现 ReAct 循环需要考虑：</p>
-            <ul style="margin:10px 0 0 16px;line-height:2">
-              <li><strong>循环控制</strong>：设置 max_iterations 防止无限循环</li>
-              <li><strong>消息历史</strong>：维护完整的对话历史</li>
-              <li><strong>停止条件</strong>：判断何时结束循环</li>
-              <li><strong>错误处理</strong>：捕获工具执行错误</li>
-            </ul>
-          `
-        },
-        {
-          type: 'code',
-          title: '📟 ReAct 循环实现',
-          code: `def react_loop(query, max_iter=5):
+          type: 'debug',
+          title: '🔍 诊断：这个 Agent 为什么卡在第二步？',
+          description: `用户问："北京今天适合出门吗？如果适合，明天呢？"
+
+Agent 的预期行为：
+  第1步 → 调用 get_weather("北京", "今天") → 得到天气数据
+  第2步 → 思考：今天适合，但用户还问了明天，需要继续查
+  第3步 → 调用 get_weather("北京", "明天") → 得到天气数据
+  第4步 → 综合回答
+
+实际行为：Agent 在第2步拿到今天天气后，直接回答了"今天适合出门"，完全没有查明天的天气。
+
+找出 Bug 并修复它。`,
+          buggy_code: `def react_agent(query, tools, max_iter=5):
     messages = [{"role": "user", "content": query}]
 
     for i in range(max_iter):
         response = client.messages.create(
             model="claude-opus-4-6",
-            max_tokens=2048,
+            max_tokens=1024,
             tools=tools,
             messages=messages
         )
 
-        if response.stop_reason == "tool_use":
-            tool_use = next(b for b in response.content
-                          if b.type == "tool_use")
-            result = execute_tool(tool_use.name, tool_use.input)
+        # Bug 在这里：stop_reason 的判断逻辑有问题
+        if response.stop_reason == "end_turn":
+            return response.content[0].text
 
+        # 执行工具调用
+        tool_use = next(b for b in response.content if b.type == "tool_use")
+        result = execute_tool(tool_use.name, tool_use.input)
+        messages.append({"role": "assistant", "content": response.content})
+        messages.append({
+            "role": "user",
+            "content": [{"type": "tool_result",
+                         "tool_use_id": tool_use.id,
+                         "content": str(result)}]
+        })
+
+    return "达到最大迭代次数"`,
+          fixed_code: `def react_agent(query, tools, max_iter=5):
+    messages = [{"role": "user", "content": query}]
+
+    for i in range(max_iter):
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=1024,
+            tools=tools,
+            messages=messages
+        )
+
+        # Fix：应该判断 stop_reason == "tool_use"，而不是 "end_turn"
+        # 只有当 LLM 明确要调用工具时才继续循环
+        if response.stop_reason == "tool_use":
+            tool_use = next(b for b in response.content if b.type == "tool_use")
+            result = execute_tool(tool_use.name, tool_use.input)
             messages.append({"role": "assistant", "content": response.content})
             messages.append({
                 "role": "user",
-                "content": [{
-                    "type": "tool_result",
-                    "tool_use_id": tool_use.id,
-                    "content": json.dumps(result)
-                }]
+                "content": [{"type": "tool_result",
+                             "tool_use_id": tool_use.id,
+                             "content": str(result)}]
             })
-        elif response.stop_reason == "end_turn":
+        else:
+            # stop_reason 是 "end_turn"：LLM 认为任务完成，返回最终答案
             return response.content[0].text
 
     return "达到最大迭代次数"`,
-          explanation: `
-            <strong>关键点：</strong><br>
-            • <code>max_iter</code>: 防止无限循环<br>
-            • <code>messages</code>: 维护完整的对话历史<br>
-            • <code>stop_reason</code>: 判断 LLM 是要调用工具还是结束<br>
-            • 工具结果要添加到消息历史中
-          `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ 常见坑点',
-          items: [
-            '没有设置 max_iterations → 可能无限循环，消耗大量 token',
-            '消息历史过长 → Context Window 超限，需要压缩',
-            '没有处理 stop_reason → 可能错误地继续循环',
-            '工具结果格式错误 → LLM 无法理解，导致循环失败'
-          ]
+          hints: [
+            '仔细看 if 条件：它在判断什么情况下"继续"，什么情况下"停止"？',
+            'stop_reason == "end_turn" 意味着 LLM 认为任务完成了，应该返回答案',
+            'stop_reason == "tool_use" 意味着 LLM 想调用工具，应该继续循环',
+            '原代码把这两个条件搞反了——它在 LLM 想结束时继续，在 LLM 想继续时却停了'
+          ],
+          validate: function(code) {
+            const hasToolUseCheck = code.includes('"tool_use"') || code.includes("'tool_use'");
+            const hasEndTurnReturn = code.includes('"end_turn"') || code.includes("'end_turn'") || code.includes('else');
+            const wrongOrder = /if.*end_turn[\s\S]*?return[\s\S]*?tool_use/.test(code);
+            if (wrongOrder) return { ok: false, msg: '逻辑还是反的！应该在 stop_reason == "tool_use" 时执行工具，在 else（end_turn）时返回答案。' };
+            if (hasToolUseCheck && hasEndTurnReturn) return { ok: true, msg: '✅ 完全正确！stop_reason 的判断逻辑修复了。Agent 现在会在需要时继续调用工具，在任务完成时才返回答案。' };
+            if (!hasToolUseCheck) return { ok: false, msg: '需要判断 stop_reason == "tool_use" 来决定是否继续循环！' };
+            return { ok: false, msg: '接近了！确保在 tool_use 时执行工具，在其他情况下返回答案。' };
+          }
         },
         {
           type: 'quiz',
-          q: '为什么要设置 max_iterations？',
+          q: '下面哪种 stop_reason 判断逻辑是正确的？',
           opts: [
-            '为了让 Agent 运行得更快',
-            '防止无限循环，避免消耗大量 token 和时间',
-            '为了让代码看起来更专业',
-            '这个参数没有实际作用'
+            'if stop_reason == "end_turn": 执行工具；else: 返回答案',
+            'if stop_reason == "tool_use": 执行工具；else: 返回答案',
+            '不需要判断 stop_reason，直接执行工具',
+            'if stop_reason == "tool_use": 返回答案；else: 执行工具'
           ],
           ans: 1,
-          feedback_ok: '✅ 正确！max_iterations 是防止无限循环的关键保护机制！',
-          feedback_err: 'max_iterations 是安全机制，防止 Agent 陷入无限循环！'
+          feedback_ok: '✅ 正确！"tool_use" 表示 LLM 要调用工具，"end_turn" 表示 LLM 认为任务完成。判断反了就会出现刚才那个 Bug。',
+          feedback_err: 'stop_reason == "tool_use" 才是"需要调用工具"的信号。"end_turn" 是"任务完成"的信号，这时应该返回答案。'
         }
       ]
     }

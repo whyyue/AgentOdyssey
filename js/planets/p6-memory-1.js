@@ -139,6 +139,52 @@ PLANETS.push({
           ans: 1,
           feedback_ok: '✅ 正确！主动压缩历史消息是最常用的策略！',
           feedback_err: 'Context Window 是硬限制，需要主动压缩历史消息！'
+        },
+        {
+          type: 'challenge',
+          title: '✏️ 挑战：实现滑动窗口记忆',
+          description: '补全下面的滑动窗口函数。要求：始终保留 system message，只保留最近 N 轮对话（每轮 = 1 user + 1 assistant），超出时删除最早的一轮。',
+          starter: `def sliding_window(messages, max_turns=10):
+    """
+    messages 格式：
+    [
+        {"role": "system", "content": "..."},  # 始终保留
+        {"role": "user", "content": "..."},
+        {"role": "assistant", "content": "..."},
+        ...
+    ]
+    """
+    # TODO: 分离 system message 和对话历史
+    system_msgs = ___
+    history = ___
+
+    # TODO: 每轮 = user + assistant = 2 条消息
+    # 如果超过 max_turns 轮，删除最早的一轮
+    while ___:
+        history = ___  # 删除最早的一轮（2条）
+
+    return ___ + history`,
+          solution: `def sliding_window(messages, max_turns=10):
+    system_msgs = [m for m in messages if m["role"] == "system"]
+    history = [m for m in messages if m["role"] != "system"]
+
+    while len(history) > max_turns * 2:
+        history = history[2:]  # 删除最早的一轮（user + assistant）
+
+    return system_msgs + history`,
+          hints: [
+            '用列表推导式分离 system 消息和对话历史',
+            '每轮对话 = 2 条消息（user + assistant），所以 max_turns 轮 = max_turns * 2 条',
+            'history[2:] 可以删除列表的前两个元素'
+          ],
+          validate: function(code) {
+            if (code.includes('system') && code.includes('history') && (code.includes('* 2') || code.includes('*2')) && code.includes('[2:]')) {
+              return { ok: true, msg: '✅ 完美！滑动窗口实现正确，Agent 的记忆不会再溢出了！' };
+            }
+            if (!code.includes('system')) return { ok: false, msg: '别忘了单独处理 system message，它需要始终保留！' };
+            if (!code.includes('[2:]') && !code.includes('pop(0)')) return { ok: false, msg: '需要删除最早的一轮对话（2条消息）！' };
+            return { ok: false, msg: '逻辑接近了！检查 max_turns 和消息数量的换算关系。' };
+          }
         }
       ]
     }

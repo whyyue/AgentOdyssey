@@ -365,6 +365,41 @@ def camel_chat(user_agent: dict, assistant_agent: dict,
           ans: 1,
           feedback_ok: '🔥 完美！Inception Prompting 是 CAMEL 的核心贡献之一。就像演员在开拍前要深入了解角色背景，Inception Prompting 让 Agent 在对话开始时就"入戏"，整个协作过程中都不会忘记自己是谁、要做什么。',
           feedback_err: 'Inception Prompting 解决的是"角色混淆"问题。在多 Agent 对话中，LLM 很容易忘记自己的角色。Inception Prompting 在开始时给出详细的角色设定和任务背景，让 Agent 始终保持专注。'
+        },
+        {
+          type: 'sandbox',
+          title: '🎛️ 沙盒：设计你的 Multi-Agent 架构',
+          description: '调整参数，观察不同架构配置下的系统特性。',
+          sliders: [
+            { id: 'num_agents', label: 'Agent 数量', min: 2, max: 10, step: 1, default: 3, unit: '' },
+            { id: 'max_turns', label: '最大对话轮数', min: 5, max: 50, step: 5, default: 20, unit: '' }
+          ],
+          visualize: function(vals) {
+            const n = parseInt(vals.num_agents);
+            const turns = parseInt(vals.max_turns);
+            const tokenPerTurn = 1500;
+            const totalTokens = n * turns * tokenPerTurn;
+            const costUSD = (totalTokens / 1000000 * 3).toFixed(2);
+
+            const complexity = n <= 3 ? '简单' : n <= 6 ? '中等' : '复杂';
+            const pattern = n === 2 ? '双 Agent 对话（CAMEL 模式）' :
+                            n === 3 ? '三角协作（用户+助手+评审）' :
+                            n <= 5 ? '小团队协作（推荐）' :
+                                     '大规模群体（适合仿真，成本高）';
+
+            const agentIcons = ['🤖', '🧑‍💼', '🔍', '✍️', '📊', '🛡️', '🎯', '🔧', '📝', '🌐'];
+            const agentRow = agentIcons.slice(0, n).join(' ');
+
+            return `架构：${agentRow}
+模式：${pattern}
+复杂度：${complexity}
+
+最大对话轮数：${turns} 轮
+预计 Token 消耗：~${(totalTokens/1000).toFixed(0)}K tokens
+预计成本：~$${costUSD} USD
+
+${n > 6 ? '⚠️ Agent 过多会导致协调开销急剧增加，建议先从 3-5 个开始' : '✅ 架构合理，可以开始实现'}`;
+          }
         }
       ]
     }

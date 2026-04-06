@@ -129,6 +129,75 @@ PLANETS.push({
           ans: 1,
           feedback_ok: '✅ 正确！description 是 LLM 决定是否使用工具的关键依据！',
           feedback_err: '记住：LLM 靠 description 来判断是否使用工具，所以它最重要！'
+        },
+        {
+          type: 'challenge',
+          title: '✏️ 挑战：为计算器设计工具定义',
+          description: '根据下面的要求，补全这个计算器工具的 JSON Schema 定义。要求：支持加减乘除四种运算，两个数字参数 a 和 b，以及一个运算符参数 op。',
+          starter: `{
+  "name": "calculator",
+  "description": "___填写工具描述___",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "type": "number",
+        "description": "___"
+      },
+      "b": {
+        "type": "number",
+        "description": "___"
+      },
+      "op": {
+        "type": "string",
+        "enum": ["___", "___", "___", "___"],
+        "description": "___"
+      }
+    },
+    "required": ["a", "b", "op"]
+  }
+}`,
+          solution: `{
+  "name": "calculator",
+  "description": "执行基本数学运算（加减乘除），返回计算结果",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "type": "number",
+        "description": "第一个操作数"
+      },
+      "b": {
+        "type": "number",
+        "description": "第二个操作数"
+      },
+      "op": {
+        "type": "string",
+        "enum": ["+", "-", "*", "/"],
+        "description": "运算符：加(+)、减(-)、乘(*)、除(/)"
+      }
+    },
+    "required": ["a", "b", "op"]
+  }
+}`,
+          hints: [
+            'description 要让 LLM 明白这个工具能做什么',
+            'enum 数组里填入四个运算符：+、-、*、/',
+            '每个参数的 description 要简洁说明其含义'
+          ],
+          validate: function(code) {
+            try {
+              const obj = JSON.parse(code);
+              if (!obj.description || obj.description.includes('___')) return { ok: false, msg: '请填写工具的 description！' };
+              const props = obj.input_schema && obj.input_schema.properties;
+              if (!props || !props.a || !props.b || !props.op) return { ok: false, msg: '需要 a、b、op 三个参数！' };
+              const en = props.op.enum;
+              if (!en || en.length < 4) return { ok: false, msg: 'op 的 enum 需要包含四种运算符！' };
+              return { ok: true, msg: '✅ 完美！工具定义清晰完整，LLM 能准确理解何时使用它。' };
+            } catch(e) {
+              return { ok: false, msg: 'JSON 格式有误，请检查括号和引号！' };
+            }
+          }
         }
       ]
     }

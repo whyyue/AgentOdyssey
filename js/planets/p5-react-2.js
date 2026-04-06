@@ -149,56 +149,132 @@ response = client.messages.create(
         {
           type: 'story',
           html: `
-            <div class="speaker">🔥 地狱模式 - ReAct 论文深度解读</div>
+            <div class="speaker">🔥 Hell 模式：Agent 为什么会走错路？</div>
             <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，你知道 Agent 的"思考+行动"模式是怎么来的吗？<br><br>
-              2023 年，一篇论文正式定义了这个范式：<br>
-              <strong>ReAct: Synergizing Reasoning and Acting in Language Models</strong><br><br>
-              作者来自普林斯顿大学和 Google Research。<br>
-              这篇论文是所有 Agent 框架的理论基础！
+              🤖 ARIA：船长，我们遇到了一个奇怪的 Agent。<br><br>
+              它能调用工具，能获取信息，但经常做出错误的决策。<br><br>
+              问题不是"不会用工具"，而是"不知道为什么要用这个工具"。<br><br>
+              让我们看看它到底哪里出了问题。
             </div>
           `
         },
         {
-          type: 'concept',
-          title: '📄 论文背景：两个世界的碰撞',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
-              <strong>论文信息：</strong><br>
-              • 标题：ReAct: Synergizing Reasoning and Acting in Language Models<br>
-              • 作者：Shunyu Yao 等（普林斯顿 + Google Research）<br>
-              • 发表：ICLR 2023<br>
-              • 引用：超过 2,000 次（2023 年论文，增长极快）<br><br>
+          type: 'debug',
+          title: '🤔 这个 Agent 为什么总是走错路？',
+          description: `用户问："北京今天适合跑步吗？"
 
-              <strong>论文解决的问题：</strong><br>
-              在 ReAct 之前，有两种方法各有缺陷：
+这个 Act-only Agent（没有 Thought 步骤）的行为：
+  第1步 → 调用 get_weather("北京", "今天")
+  第2步 → 得到 "25°C 晴天"
+  第3步 → 直接回答："适合跑步！"
+
+看起来没问题？但用户其实有哮喘，空气质量差的时候不能跑步。Agent 只看了温度，没考虑空气质量。
+
+问题：它在哪里出错了？如果让它在每次行动前先"想一想"，应该怎么改？`,
+          buggy_code: `def act_only_agent(query, tools, max_iter=5):
+    messages = [{"role": "user", "content": query}]
+
+    for i in range(max_iter):
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=1024,
+            tools=tools,
+            messages=messages
+        )
+
+        if response.stop_reason == "tool_use":
+            # 直接执行工具，没有思考过程
+            tool_use = next(b for b in response.content if b.type == "tool_use")
+            result = execute_tool(tool_use.name, tool_use.input)
+
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({
+                "role": "user",
+                "content": [{"type": "tool_result",
+                             "tool_use_id": tool_use.id,
+                             "content": str(result)}]
+            })
+        else:
+            return response.content[0].text
+
+    return "达到最大迭代次数"`,
+          fixed_code: `def react_agent_with_thought(query, tools, max_iter=5):
+    # 关键改进：在 System Prompt 中要求 LLM 先思考再行动
+    system_prompt = """
+在每次调用工具前，请先输出你的思考过程：
+- 我现在知道什么？
+- 我还需要什么信息？
+- 为什么要调用这个工具？
+
+在看到工具结果后，再思考：
+- 这个结果告诉了我什么？
+- 我是否需要更多信息？
+- 下一步应该做什么？
+"""
+
+    messages = [{"role": "user", "content": query}]
+
+    for i in range(max_iter):
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=1024,
+            system=system_prompt,  # 引导 LLM 思考
+            tools=tools,
+            messages=messages
+        )
+
+        if response.stop_reason == "tool_use":
+            tool_use = next(b for b in response.content if b.type == "tool_use")
+            result = execute_tool(tool_use.name, tool_use.input)
+
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({
+                "role": "user",
+                "content": [{"type": "tool_result",
+                             "tool_use_id": tool_use.id,
+                             "content": str(result)}]
+            })
+        else:
+            return response.content[0].text
+
+    return "达到最大迭代次数"`,
+          hints: [
+            'Act-only Agent 的问题：它不知道"为什么"要调用工具，只是机械地执行',
+            '加入 Thought 的方法：在 System Prompt 中引导 LLM 说明思考过程',
+            '关键是让 LLM 在行动前分析"我需要什么信息"，在行动后分析"这个结果够不够"'
+          ],
+          validate: function(code) {
+            const hasSystemPrompt = code.includes('system') && (code.includes('思考') || code.includes('think') || code.includes('reason'));
+            const hasThoughtGuidance = code.includes('为什么') || code.includes('why') || code.includes('需要什么') || code.includes('what do');
+            if (hasSystemPrompt && hasThoughtGuidance) {
+              return { ok: true, msg: '✅ 完美！你理解了 Thought 的核心价值——让 Agent 知道"为什么"要做某个行动，而不是盲目执行。' };
+            }
+            if (!hasSystemPrompt) return { ok: false, msg: '提示：可以通过 System Prompt 引导 LLM 在行动前后进行思考。' };
+            return { ok: false, msg: '接近了！确保 System Prompt 明确要求 LLM 说明"为什么要调用这个工具"。' };
+          }
+        },
+        {
+          type: 'concept',
+          title: '📄 你刚才想到的，2022 年有人写成了论文',
+          html: `
+            <div style="margin:14px 0;padding:14px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong>ReAct: Synergizing Reasoning and Acting in Language Models</strong><br>
+              作者：Shunyu Yao 等（普林斯顿大学 + Google Research）<br>
+              发表：ICLR 2023<br><br>
+
+              你刚才的直觉——"Agent 需要先想清楚为什么要做某个行动"——<br>
+              和这篇论文的核心思想完全一致！
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0">
-              <div style="padding:12px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:12px;font-size:.85rem;line-height:1.7">
-                <strong style="color:var(--red)">❌ 只推理（CoT）</strong><br>
-                让 LLM 一直思考<br>
-                问题：思考可能出错，<br>
-                没有外部信息纠正
-              </div>
-              <div style="padding:12px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:12px;font-size:.85rem;line-height:1.7">
-                <strong style="color:var(--red)">❌ 只行动（Act）</strong><br>
-                直接调用工具<br>
-                问题：没有推理，<br>
-                不知道为什么这样做
-              </div>
-            </div>
-            <div style="padding:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2);border-radius:12px;font-size:.85rem;line-height:1.7;text-align:center">
-              <strong style="color:var(--cyan)">✅ ReAct = 推理 + 行动交替</strong><br>
-              思考 → 行动 → 观察 → 思考 → 行动……<br>
+            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong>论文的核心发现：</strong><br><br>
+              在 ReAct 之前，有两种方法各有缺陷：<br>
+              • <strong>只推理（CoT）</strong>：LLM 一直思考，但思考可能出错，没有外部信息纠正<br>
+              • <strong>只行动（Act）</strong>：直接调用工具，但不知道为什么这样做<br><br>
+
+              <strong style="color:var(--cyan)">ReAct = 推理 + 行动交替</strong><br>
+              Thought → Action → Observation → Thought → Action……<br>
               两者互相补充，互相纠正！
             </div>
-          `
-        },
-        {
-          type: 'concept',
-          title: '💡 ReAct 的核心创新：Thought 的格式',
-          html: `
-            <p>ReAct 最关键的设计是让 LLM 输出<strong>可读的思考过程</strong>：</p>
             <div style="margin:14px 0;padding:14px;background:rgba(0,0,0,.3);border-radius:12px;font-family:monospace;font-size:.82rem;line-height:1.9">
               <span style="color:#fca5a5">问题：</span>科罗拉多造山运动东部区域的海拔范围是多少？<br><br>
 
@@ -214,132 +290,107 @@ response = client.messages.create(
               <span style="color:var(--cyan)">Action 3:</span> Finish[1,800 到 2,100 米]
             </div>
             <div style="margin-top:16px;padding:12px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
-              💡 <strong>Thought 的作用：</strong><br>
+              💡 <strong>Thought 的作用（和你刚才想到的一样）：</strong><br>
               • 让 LLM 解释"为什么"要做这个行动<br>
-              • 让 LLM 分析上一步的结果<br>
-              • 让 LLM 规划下一步<br>
-              • 出错时可以在 Thought 里自我纠正！
+              • 让 LLM 分析上一步的结果是否足够<br>
+              • 出错时可以在 Thought 里自我纠正方向！
             </div>
           `
         },
         {
-          type: 'code',
-          title: '💻 ReAct 的 Prompt 设计（Few-Shot）',
-          code: `# ReAct 的核心是 Few-Shot Prompt，给 LLM 示范格式
-REACT_PROMPT = """
-解决问题时，请交替使用 Thought、Action、Observation。
+          type: 'challenge',
+          title: '✏️ 挑战：给 Act-only Agent 加上 Thought',
+          description: '下面是一个纯 Act-only 的 Agent。请修改它，让它在每次调用工具前后都进行思考。',
+          starter: `def agent(query, tools, max_iter=5):
+    messages = [{"role": "user", "content": query}]
 
-Thought: 分析当前情况，决定下一步
-Action: search[查询词] 或 lookup[关键词] 或 finish[答案]
-Observation: 工具返回的结果（由系统填入）
+    for i in range(max_iter):
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=1024,
+            # TODO: 添加 system prompt 引导思考
+            tools=tools,
+            messages=messages
+        )
 
-示例：
-问题：苹果公司的创始人是谁？他出生在哪个城市？
+        if response.stop_reason == "tool_use":
+            tool_use = next(b for b in response.content if b.type == "tool_use")
+            result = execute_tool(tool_use.name, tool_use.input)
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({
+                "role": "user",
+                "content": [{"type": "tool_result",
+                             "tool_use_id": tool_use.id,
+                             "content": str(result)}]
+            })
+        else:
+            return response.content[0].text
 
-Thought: 我需要找到苹果公司的创始人。
-Action: search[苹果公司创始人]
-Observation: 苹果公司由史蒂夫·乔布斯、史蒂夫·沃兹尼亚克和罗纳德·韦恩创立。
+    return "达到最大迭代次数"`,
+          solution: `def agent(query, tools, max_iter=5):
+    messages = [{"role": "user", "content": query}]
 
-Thought: 找到了创始人，现在需要找乔布斯的出生城市。
-Action: search[史蒂夫·乔布斯出生地]
-Observation: 史蒂夫·乔布斯于1955年2月24日出生于美国加利福尼亚州旧金山。
+    for i in range(max_iter):
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=1024,
+            system="""在每次行动前，请先思考：
+- 我现在知道什么？
+- 我还需要什么信息？
+- 为什么要调用这个工具？
 
-Thought: 我已经有了完整答案。
-Action: finish[苹果公司创始人是史蒂夫·乔布斯，他出生在旧金山]
+在看到结果后，再思考：
+- 这个结果告诉了我什么？
+- 是否需要更多信息？""",
+            tools=tools,
+            messages=messages
+        )
 
-现在解决这个问题：
-{question}
-"""
+        if response.stop_reason == "tool_use":
+            tool_use = next(b for b in response.content if b.type == "tool_use")
+            result = execute_tool(tool_use.name, tool_use.input)
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({
+                "role": "user",
+                "content": [{"type": "tool_result",
+                             "tool_use_id": tool_use.id,
+                             "content": str(result)}]
+            })
+        else:
+            return response.content[0].text
 
-def react_agent(question, max_steps=6):
-    prompt = REACT_PROMPT.format(question=question)
-    trajectory = []
-
-    for step in range(max_steps):
-        # LLM 生成 Thought + Action
-        response = llm.generate(prompt, stop=["Observation:"])
-
-        # 解析 Action
-        action = parse_action(response)  # search/lookup/finish
-
-        if action.type == "finish":
-            return action.answer
-
-        # 执行工具，获取 Observation
-        observation = execute_tool(action)
-
-        # 把 Observation 加回 prompt，继续循环
-        prompt += response + f"Observation: {observation}\n\n"
-        trajectory.append((response, observation))
-
-    return "达到最大步数"`,
-          explanation: `
-            <strong>ReAct 实现的关键：</strong><br>
-            • <strong>Few-Shot 示例</strong>：给 LLM 看完整的 Thought/Action/Observation 格式<br>
-            • <strong>stop=["Observation:"]</strong>：让 LLM 在 Action 后停止，等待工具结果<br>
-            • <strong>追加 Observation</strong>：把工具结果加回 prompt，形成完整轨迹<br>
-            • <strong>finish 动作</strong>：LLM 自己决定何时结束，不需要外部判断
-          `
+    return "达到最大迭代次数"`,
+          hints: [
+            '在 client.messages.create() 中添加 system 参数',
+            'System Prompt 应该明确要求 LLM 在行动前后进行思考',
+            '关键词：为什么、需要什么、结果告诉了什么'
+          ],
+          validate: function(code) {
+            const hasSystem = code.includes('system=') || code.includes('system :');
+            const hasThought = code.includes('思考') || code.includes('为什么') || code.includes('需要');
+            if (hasSystem && hasThought) {
+              return { ok: true, msg: '✅ 完美！你成功给 Agent 加上了 Thought 能力。现在它会在行动前思考"为什么"，在行动后分析"够不够"。' };
+            }
+            if (!hasSystem) return { ok: false, msg: '需要添加 system 参数来引导 LLM 思考！' };
+            return { ok: false, msg: '接近了！确保 System Prompt 明确要求思考过程。' };
+          }
         },
         {
           type: 'concept',
-          title: '📊 论文实验结果',
+          title: '🚀 ReAct 之后：这个想法走向了哪里？',
           html: `
-            <p><strong>ReAct 在三个任务上的表现：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.8">
-              <strong>1. HotpotQA（多跳问答）</strong><br>
-              需要多步搜索才能回答的问题<br>
-              • 只用 CoT（思维链）：29.4% 准确率<br>
-              • 只用 Act（直接行动）：25.7% 准确率<br>
-              • <strong style="color:var(--cyan)">ReAct：35.1% 准确率</strong> ✅ 最高！<br><br>
-
-              <strong>2. FEVER（事实验证）</strong><br>
-              判断一个陈述是否为真<br>
-              • 只用 CoT：56.3%<br>
-              • 只用 Act：58.9%<br>
-              • <strong style="color:var(--cyan)">ReAct：63.1%</strong> ✅ 最高！<br><br>
-
-              <strong>3. ALFWorld（交互式环境）</strong><br>
-              在虚拟房间里完成任务（找物品、开关等）<br>
-              • 只用 Act：45%<br>
-              • <strong style="color:var(--cyan)">ReAct：71%</strong> ✅ 大幅领先！
-            </div>
-            <div style="margin-top:16px;padding:12px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
-              💡 <strong>为什么 ReAct 更好？</strong><br>
-              Thought 让 LLM 能分析 Observation 的结果，<br>
-              发现错误时可以在下一个 Thought 里纠正方向！
-            </div>
-          `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ ReAct 的局限性（论文坦诚讨论）',
-          items: [
-            '幻觉导致错误行动：LLM 在 Thought 里编造信息，然后基于错误信息行动',
-            'Token 消耗大：每步都要输出 Thought，比直接行动多 2-3 倍 token',
-            '步数限制：复杂任务可能需要很多步，超出 Context Window',
-            '格式敏感：LLM 有时不严格遵循 Thought/Action/Observation 格式',
-            '改进方向：Reflexion（自我反思）让 Agent 从失败中学习，效果更好'
-          ]
-        },
-        {
-          type: 'concept',
-          title: '🔮 ReAct 之后的演进',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+            <div style="margin:14px 0;padding:14px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9;font-size:.9rem">
               <strong>2023 - Reflexion</strong><br>
-              Agent 失败后，用语言反思错误，下次避免同样的错误<br>
-              就像人类从失败中学习！<br><br>
+              Agent 失败后，用语言反思错误，下次避免同样的错误。就像人类从失败中学习！<br><br>
 
               <strong>2023 - Tree of Thoughts (ToT)</strong><br>
-              不只是一条思维链，而是探索多条路径，选最好的<br>
-              就像下棋时考虑多种走法！<br><br>
+              不只是一条思维链，而是探索多条路径，选最好的。就像下棋时考虑多种走法！<br><br>
 
               <strong>2023 - LangChain / LangGraph</strong><br>
-              把 ReAct 封装成框架，开发者不需要手写 Prompt<br><br>
+              把 ReAct 封装成框架，开发者不需要手写 Prompt。<br><br>
 
               <strong>2024 - Claude / GPT-4 内置推理</strong><br>
-              模型本身就会 ReAct 式推理，不需要特殊 Prompt
+              模型本身就会 ReAct 式推理，不需要特殊 Prompt。
             </div>
           `
         },
@@ -355,6 +406,43 @@ def react_agent(question, max_steps=6):
           ans: 1,
           feedback_ok: '🔥 完美！Thought 是 ReAct 的灵魂。它让 LLM 在每次行动前先"想清楚"，在看到结果后能"分析对不对"。这种自我纠正能力是 ReAct 比纯行动（Act-only）强的核心原因！',
           feedback_err: 'Thought 的价值在于"自我纠正"。当工具返回意外结果时，LLM 可以在下一个 Thought 里分析"这不对，我应该换个方向"。这是 ReAct 比 CoT 和 Act-only 都强的关键！'
+        },
+        {
+          type: 'sandbox',
+          title: '🎛️ 沙盒：调节 max_iterations，观察 Agent 行为',
+          description: '不同的任务复杂度需要不同的迭代次数。拖动滑块，看看各种设置下 Agent 的表现。',
+          sliders: [
+            { id: 'max_iter', label: 'max_iterations', min: 1, max: 20, step: 1, default: 5, unit: '' },
+            { id: 'task_steps', label: '任务步骤数', min: 1, max: 15, step: 1, default: 4, unit: '' }
+          ],
+          visualize: function(vals) {
+            const maxIter = parseInt(vals.max_iter);
+            const taskSteps = parseInt(vals.task_steps);
+            const ratio = maxIter / taskSteps;
+            let status, advice;
+            if (ratio < 1) {
+              status = '❌ 必然失败';
+              advice = `迭代次数(${maxIter})小于任务步骤(${taskSteps})，Agent 一定无法完成任务！`;
+            } else if (ratio < 1.5) {
+              status = '⚠️ 风险较高';
+              advice = `余量不足，一旦某步骤需要重试，Agent 就会超时失败。建议至少留 50% 余量。`;
+            } else if (ratio <= 3) {
+              status = '✅ 合理设置';
+              advice = `有足够余量处理重试和意外情况，同时不会浪费太多 token。`;
+            } else {
+              status = '💸 过于宽松';
+              advice = `余量过大。如果 Agent 陷入循环，会消耗大量 token 才超时。建议适当收紧。`;
+            }
+            const bar = Math.min(maxIter, 20);
+            const taskBar = Math.min(taskSteps, 20);
+            return `任务步骤: ${'▓'.repeat(taskBar)}${'░'.repeat(20-taskBar)} ${taskSteps}
+最大迭代: ${'█'.repeat(bar)}${'░'.repeat(20-bar)} ${maxIter}
+
+状态：${status}
+建议：${advice}
+
+Token 消耗估算：约 ${maxIter * 800} tokens（每步 ~800 tokens）`;
+          }
         }
       ]
     }
