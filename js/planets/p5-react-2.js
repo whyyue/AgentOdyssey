@@ -147,153 +147,121 @@ response = client.messages.create(
     hell: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔥 Hell 模式：Agent 为什么会走错路？</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，我们遇到了一个奇怪的 Agent。<br><br>
-              它能调用工具，能获取信息，但经常做出错误的决策。<br><br>
-              问题不是"不会用工具"，而是"不知道为什么要用这个工具"。<br><br>
-              让我们看看它到底哪里出了问题。
-            </div>
-          `
-        },
-        {
-          type: 'debug',
+          type: 'dialogue',
           title: '🤔 这个 Agent 为什么总是走错路？',
-          description: `用户问："北京今天适合跑步吗？"
-
-这个 Act-only Agent（没有 Thought 步骤）的行为：
-  第1步 → 调用 get_weather("北京", "今天")
-  第2步 → 得到 "25°C 晴天"
-  第3步 → 直接回答："适合跑步！"
-
-看起来没问题？但用户其实有哮喘，空气质量差的时候不能跑步。Agent 只看了温度，没考虑空气质量。
-
-问题：它在哪里出错了？如果让它在每次行动前先"想一想"，应该怎么改？`,
-          buggy_code: `def act_only_agent(query, tools, max_iter=5):
-    messages = [{"role": "user", "content": query}]
-
-    for i in range(max_iter):
-        response = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=1024,
-            tools=tools,
-            messages=messages
-        )
-
-        if response.stop_reason == "tool_use":
-            # 直接执行工具，没有思考过程
-            tool_use = next(b for b in response.content if b.type == "tool_use")
-            result = execute_tool(tool_use.name, tool_use.input)
-
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({
-                "role": "user",
-                "content": [{"type": "tool_result",
-                             "tool_use_id": tool_use.id,
-                             "content": str(result)}]
-            })
-        else:
-            return response.content[0].text
-
-    return "达到最大迭代次数"`,
-          fixed_code: `def react_agent_with_thought(query, tools, max_iter=5):
-    # 关键改进：在 System Prompt 中要求 LLM 先思考再行动
-    system_prompt = """
-在每次调用工具前，请先输出你的思考过程：
-- 我现在知道什么？
-- 我还需要什么信息？
-- 为什么要调用这个工具？
-
-在看到工具结果后，再思考：
-- 这个结果告诉了我什么？
-- 我是否需要更多信息？
-- 下一步应该做什么？
-"""
-
-    messages = [{"role": "user", "content": query}]
-
-    for i in range(max_iter):
-        response = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=1024,
-            system=system_prompt,  # 引导 LLM 思考
-            tools=tools,
-            messages=messages
-        )
-
-        if response.stop_reason == "tool_use":
-            tool_use = next(b for b in response.content if b.type == "tool_use")
-            result = execute_tool(tool_use.name, tool_use.input)
-
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({
-                "role": "user",
-                "content": [{"type": "tool_result",
-                             "tool_use_id": tool_use.id,
-                             "content": str(result)}]
-            })
-        else:
-            return response.content[0].text
-
-    return "达到最大迭代次数"`,
-          hints: [
-            'Act-only Agent 的问题：它不知道"为什么"要调用工具，只是机械地执行',
-            '加入 Thought 的方法：在 System Prompt 中引导 LLM 说明思考过程',
-            '关键是让 LLM 在行动前分析"我需要什么信息"，在行动后分析"这个结果够不够"'
-          ],
-          validate: function(code) {
-            const hasSystemPrompt = code.includes('system') && (code.includes('思考') || code.includes('think') || code.includes('reason'));
-            const hasThoughtGuidance = code.includes('为什么') || code.includes('why') || code.includes('需要什么') || code.includes('what do');
-            if (hasSystemPrompt && hasThoughtGuidance) {
-              return { ok: true, msg: '✅ 完美！你理解了 Thought 的核心价值——让 Agent 知道"为什么"要做某个行动，而不是盲目执行。' };
+          scenario: `<strong>故障场景</strong>：一个 Act-only Agent（没有 Thought 步骤）在回答"北京今天适合跑步吗？"时，调用了天气工具，得到"25°C 晴天"，然后直接回答"适合"。<br><br>但用户其实有哮喘，Agent 没有考虑空气质量。`,
+          steps: [
+            {
+              question: 'Agent 调用了 <code>get_weather("北京")</code>，得到"25°C 晴天"。<br><br>它接下来直接回答"适合跑步"。这个决策有什么问题？',
+              opts: [
+                '没问题，天气好就适合跑步',
+                '它只考虑了温度，没考虑空气质量、湿度等其他因素',
+                '它应该再调用一次天气工具确认',
+                '它应该问用户要不要跑步'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！"适合跑步"不只看温度，还要看空气质量、湿度、风速等。',
+              aria_wrong: '❌ 想想：25°C 晴天就一定适合所有人跑步吗？还有什么因素会影响决策？'
+            },
+            {
+              question: '如果 Agent 在调用工具前先"想一想"，它应该思考什么？',
+              opts: [
+                '思考：我应该调用哪个工具？',
+                '思考：用户问的是"适合跑步"，我需要哪些信息才能判断？',
+                '思考：这个问题有多少个字？',
+                '思考：用户为什么要跑步？'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！先想清楚"需要什么信息"，再决定调用什么工具。',
+              aria_wrong: '❌ 提示：在行动前，Agent 应该先分析"完整回答这个问题需要哪些信息"。',
+              reveal_on_correct: `<strong>Thought 的作用</strong>：<br>在调用工具前，Agent 先思考"我需要什么信息"，而不是直接行动。<br><br>这样它会意识到：判断"适合跑步"需要天气、空气质量、用户健康状况等多个维度的信息。`
+            },
+            {
+              question: '在看到工具结果后，Agent 也应该"想一想"。它应该思考什么？',
+              opts: [
+                '思考：这个结果是不是正确的？',
+                '思考：这个结果告诉了我什么？我是否有足够信息回答用户？',
+                '思考：这个结果有多少个字？',
+                '思考：用户会不会满意这个结果？'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！看到结果后，Agent 要判断"信息是否充分"，而不是直接回答。',
+              aria_wrong: '❌ 提示：Agent 应该评估"我现在掌握的信息是否足够回答用户的问题"。',
+              reveal_on_correct: `<strong>完整的 ReAct 循环</strong>：<br><code>Thought（思考需要什么）→ Action（调用工具）→ Observation（看结果）→ Thought（评估是否充分）→ ...</code><br><br>没有 Thought 的 Agent 就像一个只会机械执行指令的机器人，不会"想清楚为什么"。`
             }
-            if (!hasSystemPrompt) return { ok: false, msg: '提示：可以通过 System Prompt 引导 LLM 在行动前后进行思考。' };
-            return { ok: false, msg: '接近了！确保 System Prompt 明确要求 LLM 说明"为什么要调用这个工具"。' };
-          }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你理解了 Thought 的核心价值！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">Thought 让 Agent 从"机械执行"变成"有目的的推理"。<br>这就是 ReAct 论文的核心洞察。</div>`
         },
         {
           type: 'concept',
           title: '📄 你刚才想到的，2022 年有人写成了论文',
           html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
-              <strong>ReAct: Synergizing Reasoning and Acting in Language Models</strong><br>
-              作者：Shunyu Yao 等（普林斯顿大学 + Google Research）<br>
-              发表：ICLR 2023<br><br>
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">ReAct: Synergizing Reasoning and Acting in Language Models</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">作者：Shunyu Yao 等（普林斯顿大学 + Google Research）· ICLR 2023</span><br><br>
 
-              你刚才的直觉——"Agent 需要先想清楚为什么要做某个行动"——<br>
-              和这篇论文的核心思想完全一致！
+              <span style="color:var(--cyan)">你刚才的直觉——"Agent 需要先想清楚为什么要做某个行动"——和这篇论文的核心思想完全一致！</span>
             </div>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
-              <strong>论文的核心发现：</strong><br><br>
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">论文的核心发现</strong><br><br>
               在 ReAct 之前，有两种方法各有缺陷：<br>
               • <strong>只推理（CoT）</strong>：LLM 一直思考，但思考可能出错，没有外部信息纠正<br>
               • <strong>只行动（Act）</strong>：直接调用工具，但不知道为什么这样做<br><br>
 
               <strong style="color:var(--cyan)">ReAct = 推理 + 行动交替</strong><br>
-              Thought → Action → Observation → Thought → Action……<br>
+              <code>Thought → Action → Observation → Thought → Action...</code><br>
               两者互相补充，互相纠正！
             </div>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,0,0,.3);border-radius:12px;font-family:monospace;font-size:.82rem;line-height:1.9">
-              <span style="color:#fca5a5">问题：</span>科罗拉多造山运动东部区域的海拔范围是多少？<br><br>
 
-              <span style="color:var(--yellow)">Thought 1:</span> 我需要先搜索科罗拉多造山运动，找到东部区域。<br>
-              <span style="color:var(--cyan)">Action 1:</span> Search[科罗拉多造山运动]<br>
-              <span style="color:#a3e635">Observation 1:</span> 科罗拉多造山运动是一次古老的造山运动，东部区域包括高原地带……<br><br>
+            <div style="margin:20px 0;padding:16px;background:rgba(0,0,0,.3);border-radius:12px;line-height:1.9">
+              <div style="color:var(--muted);font-size:.85rem;margin-bottom:12px">📋 论文示例（简化版）</div>
+              <div style="font-family:monospace;font-size:.85rem">
+                <span style="color:#fca5a5">问题：</span>科罗拉多造山运动东部区域的海拔范围是多少？<br><br>
 
-              <span style="color:var(--yellow)">Thought 2:</span> 我找到了东部区域，但还没有海拔数据。需要搜索高原地带的海拔。<br>
-              <span style="color:var(--cyan)">Action 2:</span> Search[高原地带海拔范围]<br>
-              <span style="color:#a3e635">Observation 2:</span> 高原地带海拔约 1,800 到 2,100 米……<br><br>
+                <span style="color:var(--yellow)">Thought 1:</span> 我需要先搜索科罗拉多造山运动，找到东部区域。<br>
+                <span style="color:var(--cyan)">Action 1:</span> Search[科罗拉多造山运动]<br>
+                <span style="color:#a3e635">Observation 1:</span> ...东部区域包括高原地带...<br><br>
 
-              <span style="color:var(--yellow)">Thought 3:</span> 我已经找到了答案。<br>
-              <span style="color:var(--cyan)">Action 3:</span> Finish[1,800 到 2,100 米]
+                <span style="color:var(--yellow)">Thought 2:</span> 我找到了东部区域，但还没有海拔数据。需要搜索高原地带的海拔。<br>
+                <span style="color:var(--cyan)">Action 2:</span> Search[高原地带海拔范围]<br>
+                <span style="color:#a3e635">Observation 2:</span> 高原地带海拔约 1,800 到 2,100 米...<br><br>
+
+                <span style="color:var(--yellow)">Thought 3:</span> 我已经找到了答案。<br>
+                <span style="color:var(--cyan)">Action 3:</span> Finish[1,800 到 2,100 米]
+              </div>
             </div>
+
             <div style="margin-top:16px;padding:12px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
               💡 <strong>Thought 的作用（和你刚才想到的一样）：</strong><br>
               • 让 LLM 解释"为什么"要做这个行动<br>
               • 让 LLM 分析上一步的结果是否足够<br>
               • 出错时可以在 Thought 里自我纠正方向！
+            </div>
+          `
+        },
+        {
+          type: 'concept',
+          title: '🚀 ReAct 之后：这个想法走向了哪里？',
+          html: `
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="padding:12px;background:rgba(168,85,247,.08);border-left:3px solid var(--purple);border-radius:8px">
+                <strong>2023 · Reflexion</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Agent 失败后，用语言反思错误，下次避免同样的错误。就像人类从失败中学习！</span>
+              </div>
+              <div style="padding:12px;background:rgba(0,229,255,.08);border-left:3px solid var(--cyan);border-radius:8px">
+                <strong>2023 · Tree of Thoughts (ToT)</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">不只是一条思维链，而是探索多条路径，选最好的。就像下棋时考虑多种走法！</span>
+              </div>
+              <div style="padding:12px;background:rgba(16,185,129,.08);border-left:3px solid var(--green);border-radius:8px">
+                <strong>2023 · LangChain / LangGraph</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">把 ReAct 封装成框架，开发者不需要手写 Prompt。</span>
+              </div>
+              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px">
+                <strong>2024 · Claude / GPT-4 内置推理</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">模型本身就会 ReAct 式推理，不需要特殊 Prompt。</span>
+              </div>
             </div>
           `
         },

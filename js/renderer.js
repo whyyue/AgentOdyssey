@@ -150,6 +150,7 @@ function renderSection(section, idx) {
     case 'quiz':      return renderQuiz(section, idx);
     case 'challenge': return renderChallenge(section, idx);
     case 'debug':     return renderDebug(section, idx);
+    case 'dialogue':  return renderDialogue(section, idx);
     case 'sandbox':   return renderSandbox(section, idx);
     case 'milestone': return renderMilestone(section);
     default: return '';
@@ -313,7 +314,7 @@ function renderChallenge(s, idx) {
         <span class="challenge-icon">🎯</span>
         <h3>${s.title}</h3>
       </div>
-      <div class="challenge-task">${s.task}</div>
+      <div class="challenge-task">${s.description || s.task || ''}</div>
 
       <div class="code-editor-wrapper">
         <div class="editor-toolbar">
@@ -324,7 +325,7 @@ function renderChallenge(s, idx) {
           id="${challengeId}-code"
           class="code-editor"
           spellcheck="false"
-        >${s.starter_code || ''}</textarea>
+        >${s.starter || s.starter_code || ''}</textarea>
       </div>
 
       <div id="${challengeId}-output" class="challenge-output" style="display:none">
@@ -357,7 +358,7 @@ function renderDebug(s, idx) {
         <span class="debug-icon">🐛</span>
         <h3>${s.title}</h3>
       </div>
-      <div class="debug-scenario">${s.scenario || ''}</div>
+      <div class="debug-scenario">${s.description || s.scenario || ''}</div>
 
       <div class="code-editor-wrapper">
         <div class="editor-toolbar">
@@ -453,6 +454,53 @@ function renderSandbox(s, idx) {
   `;
 }
 
+
+// Dialogue: Socratic 对话式学习（Direction 1）
+function renderDialogue(s, idx) {
+  const dialogueId = `dialogue-${idx}`;
+  const stepsJson = JSON.stringify(s.steps || []).replace(/'/g, "\\'").replace(/`/g, '\\`');
+
+  const stepsHtml = (s.steps || []).map((step, si) => {
+    const optsHtml = step.opts.map((opt, oi) => `
+      <button class="quiz-opt dialogue-opt" id="${dialogueId}-s${si}-o${oi}"
+        onclick="dialogueAnswer('${dialogueId}', ${idx}, ${si}, ${oi})">
+        ${opt}
+      </button>
+    `).join('');
+
+    const revealHtml = step.reveal_on_correct ? `
+      <div id="${dialogueId}-s${si}-reveal" class="dialogue-reveal" style="display:none">
+        ${step.reveal_on_correct}
+      </div>
+    ` : '';
+
+    return `
+      <div id="${dialogueId}-step-${si}" class="dialogue-step" style="${si > 0 ? 'display:none' : ''}">
+        <div class="dialogue-question">
+          <span class="dialogue-aria">🤖 ARIA：</span>
+          ${step.question}
+        </div>
+        <div class="dialogue-opts">${optsHtml}</div>
+        <div id="${dialogueId}-s${si}-feedback" class="dialogue-feedback"></div>
+        ${revealHtml}
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="dialogue-box">
+      <div class="dialogue-header">
+        <span class="dialogue-icon">💬</span>
+        <h3>${s.title || '🤖 ARIA 带你思考'}</h3>
+      </div>
+      ${s.scenario ? `<div class="dialogue-scenario">${s.scenario}</div>` : ''}
+      <div id="${dialogueId}-steps">${stepsHtml}</div>
+      <div id="${dialogueId}-complete" class="dialogue-complete" style="display:none">
+        ${s.completion_html || '<div style="color:var(--green);font-weight:700;padding:12px">✅ 你已经理清了核心逻辑！</div>'}
+      </div>
+    </div>
+  `;
+}
 
 // Milestone: 里程碑总结
 function renderMilestone(s) {

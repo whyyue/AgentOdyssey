@@ -86,101 +86,51 @@ PLANETS.push({
     hard: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔍 Hard 模式：诊断一个坏掉的 Agent</div>
-            <div class="chat-bubble robot">
-              🤖 ARIA：船长，我们收到了一份故障报告。<br><br>
-              有一个 ReAct Agent 在执行"查询天气 → 推荐穿衣 → 查询明天天气"这个三步任务时，
-              总是在第二步就停下来直接回答，根本没有继续调用工具。<br><br>
-              你能找出问题在哪里吗？
-            </div>
-          `
-        },
-        {
-          type: 'debug',
-          title: '🔍 诊断：这个 Agent 为什么卡在第二步？',
-          description: `用户问："北京今天适合出门吗？如果适合，明天呢？"
-
-Agent 的预期行为：
-  第1步 → 调用 get_weather("北京", "今天") → 得到天气数据
-  第2步 → 思考：今天适合，但用户还问了明天，需要继续查
-  第3步 → 调用 get_weather("北京", "明天") → 得到天气数据
-  第4步 → 综合回答
-
-实际行为：Agent 在第2步拿到今天天气后，直接回答了"今天适合出门"，完全没有查明天的天气。
-
-找出 Bug 并修复它。`,
-          buggy_code: `def react_agent(query, tools, max_iter=5):
-    messages = [{"role": "user", "content": query}]
-
-    for i in range(max_iter):
-        response = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=1024,
-            tools=tools,
-            messages=messages
-        )
-
-        # Bug 在这里：stop_reason 的判断逻辑有问题
-        if response.stop_reason == "end_turn":
-            return response.content[0].text
-
-        # 执行工具调用
-        tool_use = next(b for b in response.content if b.type == "tool_use")
-        result = execute_tool(tool_use.name, tool_use.input)
-        messages.append({"role": "assistant", "content": response.content})
-        messages.append({
-            "role": "user",
-            "content": [{"type": "tool_result",
-                         "tool_use_id": tool_use.id,
-                         "content": str(result)}]
-        })
-
-    return "达到最大迭代次数"`,
-          fixed_code: `def react_agent(query, tools, max_iter=5):
-    messages = [{"role": "user", "content": query}]
-
-    for i in range(max_iter):
-        response = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=1024,
-            tools=tools,
-            messages=messages
-        )
-
-        # Fix：应该判断 stop_reason == "tool_use"，而不是 "end_turn"
-        # 只有当 LLM 明确要调用工具时才继续循环
-        if response.stop_reason == "tool_use":
-            tool_use = next(b for b in response.content if b.type == "tool_use")
-            result = execute_tool(tool_use.name, tool_use.input)
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({
-                "role": "user",
-                "content": [{"type": "tool_result",
-                             "tool_use_id": tool_use.id,
-                             "content": str(result)}]
-            })
-        else:
-            # stop_reason 是 "end_turn"：LLM 认为任务完成，返回最终答案
-            return response.content[0].text
-
-    return "达到最大迭代次数"`,
-          hints: [
-            '仔细看 if 条件：它在判断什么情况下"继续"，什么情况下"停止"？',
-            'stop_reason == "end_turn" 意味着 LLM 认为任务完成了，应该返回答案',
-            'stop_reason == "tool_use" 意味着 LLM 想调用工具，应该继续循环',
-            '原代码把这两个条件搞反了——它在 LLM 想结束时继续，在 LLM 想继续时却停了'
+          type: 'dialogue',
+          title: '🔍 诊断：这个 Agent 为什么卡住了？',
+          scenario: `<strong>故障报告</strong>：一个 ReAct Agent 在处理"查询今天天气 → 推荐穿衣 → 查询明天天气"任务时，总是在第二步就停下来直接回答，没有继续调用工具查明天的天气。`,
+          steps: [
+            {
+              question: '用户问："北京今天适合出门吗？如果适合，明天呢？"<br><br>Agent 调用了 <code>get_weather("北京", "今天")</code>，得到"25°C 晴天"。<br><br>接下来 Agent 应该做什么？',
+              opts: [
+                '直接回答"今天适合出门"',
+                '思考：用户还问了明天，需要继续查询',
+                '返回错误：无法处理多步问题',
+                '重新调用今天的天气确认数据'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！用户问了两个问题，Agent 需要继续查明天的天气才能完整回答。',
+              aria_wrong: '❌ 再想想？用户问了"今天"和"明天"两个问题，只回答一半就停下来了。'
+            },
+            {
+              question: '那么，Agent 的循环应该在什么条件下继续运行？',
+              opts: [
+                '当 LLM 输出了文字时继续',
+                '当 LLM 想调用工具时继续',
+                '当用户输入新问题时继续',
+                '一直循环到最大次数'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！只有当 LLM 明确表示"我要调用工具"时，循环才应该继续。',
+              aria_wrong: '❌ 想想：什么信号表示"Agent 还没完成任务，需要继续工作"？',
+              reveal_on_correct: `<strong>关键代码</strong>：<br><code>if response.stop_reason == "tool_use":</code><br><br>这个条件判断"LLM 是否想调用工具"。如果是，就执行工具并继续循环。`
+            },
+            {
+              question: '那么，Agent 应该在什么条件下停止循环并返回答案？',
+              opts: [
+                '当调用了3次工具后停止',
+                '当 LLM 输出的文字超过100字时停止',
+                '当 LLM 明确表示任务完成时停止',
+                '当工具返回空结果时停止'
+              ],
+              correct: 2,
+              aria_correct: '✅ 完全正确！LLM 会通过 stop_reason == "end_turn" 告诉我们"任务完成了"。',
+              aria_wrong: '❌ 提示：LLM 会通过一个特殊的信号告诉我们"我已经有足够信息，可以回答了"。',
+              reveal_on_correct: `<strong>完整逻辑</strong>：<br><code>if response.stop_reason == "tool_use":<br>&nbsp;&nbsp;&nbsp;&nbsp;# 执行工具，继续循环<br>else:<br>&nbsp;&nbsp;&nbsp;&nbsp;# stop_reason == "end_turn"，返回答案</code><br><br>原代码的 Bug：把这两个条件搞反了！它在 <code>end_turn</code> 时继续循环，导致 Agent 过早停止。`
+            }
           ],
-          validate: function(code) {
-            const hasToolUseCheck = code.includes('"tool_use"') || code.includes("'tool_use'");
-            const hasEndTurnReturn = code.includes('"end_turn"') || code.includes("'end_turn'") || code.includes('else');
-            const wrongOrder = /if.*end_turn[\s\S]*?return[\s\S]*?tool_use/.test(code);
-            if (wrongOrder) return { ok: false, msg: '逻辑还是反的！应该在 stop_reason == "tool_use" 时执行工具，在 else（end_turn）时返回答案。' };
-            if (hasToolUseCheck && hasEndTurnReturn) return { ok: true, msg: '✅ 完全正确！stop_reason 的判断逻辑修复了。Agent 现在会在需要时继续调用工具，在任务完成时才返回答案。' };
-            if (!hasToolUseCheck) return { ok: false, msg: '需要判断 stop_reason == "tool_use" 来决定是否继续循环！' };
-            return { ok: false, msg: '接近了！确保在 tool_use 时执行工具，在其他情况下返回答案。' };
-          }
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你已经理清了 ReAct 循环的核心逻辑！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">stop_reason 是 Agent 循环的"红绿灯"：<br>🟢 tool_use = 继续工作<br>🔴 end_turn = 任务完成</div>`
         },
         {
           type: 'quiz',

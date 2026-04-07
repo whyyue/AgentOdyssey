@@ -263,3 +263,71 @@ function toggleHints(id) {
     hintsEl.style.display = hintsEl.style.display === 'none' ? 'block' : 'none';
   }
 }
+
+// Dialogue: Socratic 对话式交互
+function dialogueAnswer(dialogueId, sectionIdx, stepIdx, chosenIdx) {
+  const planet = PLANETS.find(p => p.id === currentPlanetId);
+  const section = planet && planet.difficulties[state.currentDifficulty]
+    ? planet.difficulties[state.currentDifficulty].sections[sectionIdx]
+    : null;
+
+  if (!section || !section.steps) return;
+  const step = section.steps[stepIdx];
+  if (!step) return;
+
+  // 禁用当前步骤所有选项
+  const stepEl = document.getElementById(`${dialogueId}-step-${stepIdx}`);
+  stepEl.querySelectorAll('.dialogue-opt').forEach(el => { el.onclick = null; });
+
+  const feedbackEl = document.getElementById(`${dialogueId}-s${stepIdx}-feedback`);
+  const correct = step.correct;
+
+  if (chosenIdx === correct) {
+    // 正确
+    stepEl.querySelectorAll('.dialogue-opt').forEach((el, i) => {
+      if (i === correct) el.classList.add('correct');
+    });
+    feedbackEl.className = 'dialogue-feedback ok';
+    feedbackEl.textContent = step.aria_correct || '✅ 正确！';
+
+    // 显示揭示内容
+    const revealEl = document.getElementById(`${dialogueId}-s${stepIdx}-reveal`);
+    if (revealEl) revealEl.style.display = 'block';
+
+    // 延迟进入下一步
+    setTimeout(() => {
+      const nextStep = document.getElementById(`${dialogueId}-step-${stepIdx + 1}`);
+      if (nextStep) {
+        nextStep.style.display = 'block';
+        nextStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        // 所有步骤完成
+        const completeEl = document.getElementById(`${dialogueId}-complete`);
+        if (completeEl) {
+          completeEl.style.display = 'block';
+          completeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        // 解锁继续按钮
+        const nav = document.querySelector('.level-nav');
+        if (nav && !nav.querySelector('.btn-cyan')) {
+          nav.innerHTML += `<button class="btn btn-cyan" onclick="nextSection()">继续 →</button>`;
+        }
+      }
+    }, 800);
+  } else {
+    // 错误
+    stepEl.querySelectorAll('.dialogue-opt').forEach((el, i) => {
+      if (i === chosenIdx) el.classList.add('wrong');
+    });
+    feedbackEl.className = 'dialogue-feedback err';
+    feedbackEl.textContent = step.aria_wrong || '再想想？';
+
+    setTimeout(() => {
+      stepEl.querySelectorAll('.dialogue-opt').forEach((el, i) => {
+        el.classList.remove('wrong');
+        el.onclick = () => dialogueAnswer(dialogueId, sectionIdx, stepIdx, i);
+      });
+      feedbackEl.className = 'dialogue-feedback';
+    }, 2000);
+  }
+}
