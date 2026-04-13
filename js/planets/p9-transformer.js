@@ -174,253 +174,128 @@ output = attention_weights @ V`,
       ]
     },
 
-    // 🔴 地狱模式 - Attention is All You Need 论文深度解读
+    // 🔴 地狱模式
     hell: {
       sections: [
         {
-          type: 'story',
+          type: 'dialogue',
+          title: '🔍 为什么 AI 翻译"他把钥匙放在盒子里，因为它太重了"时会搞错？',
+          scenario: `<strong>故障场景</strong>：你在测试一个 2016 年的 RNN 翻译模型，把下面这句话翻译成中文：<br><br>
+<em>"The trophy didn't fit in the suitcase because it was too big."</em><br><br>
+正确翻译："奖杯放不进手提箱，因为<strong>奖杯</strong>太大了。"<br>
+RNN 模型翻译："奖杯放不进手提箱，因为<strong>手提箱</strong>太大了。"<br><br>
+"it"到底指什么——奖杯还是手提箱？人类一眼就能看出来，但 RNN 搞反了。<br><br>
+这类问题叫 Winograd Schema Challenge，专门测试模型能否理解代词指代。`,
+          steps: [
+            {
+              question: 'RNN 处理"because it was too big"时，模型的状态向量里主要保留的是什么信息？',
+              opts: [
+                '完整句子的所有词的信息，均等保留',
+                '主要是最近几个词的信息——"because it was"，离得越远的词（如"trophy"）信息越少',
+                '只有语法结构信息，没有词义信息',
+                '随机保留一部分词的信息'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！这就是 RNN 的核心缺陷——"长距离衰减"。信息通过 hidden state 逐步传递，越早的词信息越容易被覆盖。当模型处理到句子末尾的"it"时，"trophy"（第2个词）的信息已经被大量稀释了。',
+              aria_wrong: '❌ 想想 RNN 是怎么工作的：它按顺序处理每个词，每个词都更新 hidden state。当你处理到第10个词时，第1个词的信息还剩多少？'
+            },
+            {
+              question: '要让模型在处理"it"时能直接"看到"句子开头的"trophy"，需要什么机制？',
+              opts: [
+                '让 RNN 的 hidden state 维度更大，存更多信息',
+                '一种让模型在处理每个词时，能直接查看句子中所有其他词并决定"哪些词和我最相关"的机制',
+                '把句子倒序输入，让近词变远词',
+                '增加更多层 RNN，深层网络自然会学会长距离依赖'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！你刚才描述的就是 Attention（注意力机制）的本质：处理"it"时，让模型同时看到"trophy"和"suitcase"，计算出"it更可能指trophy"——直接查询，不经过中间传递。',
+              aria_wrong: '❌ 更大的 hidden state 能存更多信息，但信息还是按顺序传递，长距离衰减问题仍然存在。需要的是一种能"跳过中间词直接查询"的机制。'
+            },
+            {
+              question: '如果每个词在处理时都能"直接看到"所有其他词，而不是按顺序传递信息，这对计算有什么影响？',
+              opts: [
+                '计算量减少——不需要逐步传递了',
+                '可以并行计算所有词的表示——不再有"必须等上一步完成"的约束',
+                '计算量不变，只是准确率更高',
+                '只有在 GPU 上才能并行，CPU 上还是顺序计算'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！这是 Transformer 的第二个革命性优势：因为每个词的表示可以同时计算（都直接看全局，不等前一步），整个序列可以并行处理。训练速度提升 10x+ 的根本原因就在这里。',
+              aria_wrong: '❌ 想想：如果每个词的计算都只依赖"全局输入"而不是"上一个词的输出"，那么所有词的计算之间有没有依赖关系？',
+              reveal_on_correct: `<strong>Attention 的核心公式</strong>：<br><code>Attention(Q, K, V) = softmax(QKᵀ / √d_k) × V</code><br><br>• Q（Query）："我是'it'，我在找什么？"<br>• K（Key）：每个词的"我是什么"<br>• V（Value）：每个词的实际内容<br>• softmax(QKᵀ)：计算"it"和每个词的相关程度<br>• × V：按相关程度加权混合所有词的内容<br><br>结果："it"的表示 = 75% trophy内容 + 20% suitcase内容 + 5% 其他词内容`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你推导出了 Attention 机制的核心动机！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">长距离衰减 → 需要直接查询 → Attention 机制 → 并行计算成为可能。<br>这条推导链，2017 年 Google 的研究员走过了同样的路。</div>`
+        },
+        {
+          type: 'concept',
+          title: '📄 你刚才推导出的，2017 年 Google 把它写成了论文',
           html: `
-            <div class="speaker">🔥 地狱模式已解锁！</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，欢迎来到地狱模式！这里我们将深度解读 2017 年改变 AI 世界的论文：
-              <strong style="color:var(--red)">《Attention Is All You Need》</strong><br><br>
-              作者：Vaswani et al. (Google Brain & Google Research)<br>
-              发表：NIPS 2017<br>
-              引用次数：>100,000+<br><br>
-              这篇论文提出的 Transformer 架构成为了 GPT、BERT、T5、Claude 等所有现代 LLM 的基础！
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">Attention Is All You Need</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">作者：Vaswani 等（Google Brain & Google Research）· NeurIPS 2017<br>引用次数：>100,000</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的两个直觉——"需要直接查询"和"可以并行"——正是这篇论文的两个核心贡献！</span>
+            </div>
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">论文的关键数据</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>翻译任务（WMT 2014）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">英德：BLEU 28.4（超越之前所有模型）<br>英法：BLEU 41.8（新 SOTA）<br>训练：8 × P100 GPU，3.5 天</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>对比 RNN</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">训练速度：快 10x+<br>长距离依赖：直接建模任意距离<br>参数效率：更高（同样性能更少参数）</span>
+                </div>
+              </div>
+              <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,.1);border-radius:8px;font-size:.9rem">
+                💡 <strong>意外发现</strong>：不同注意力头自发学到了不同模式——有的关注语法依赖，有的关注语义相似，有的关注位置关系。没有人设计这些，是模型自己学会的。
+              </div>
             </div>
           `
         },
         {
           type: 'concept',
-          title: '📜 论文背景与动机',
+          title: '🚀 Transformer 之后：架构如何演进（2017→2026）',
           html: `
-            <p><strong>2017 年之前的问题：</strong></p>
-            <ul style="margin:10px 0 0 16px;line-height:2">
-              <li><strong>RNN/LSTM</strong>：必须按顺序处理，无法并行，训练慢</li>
-              <li><strong>长距离依赖</strong>：信息在长序列中会衰减</li>
-              <li><strong>计算效率</strong>：GPU 无法充分利用</li>
-            </ul>
-            <p style="margin-top:16px"><strong>Transformer 的创新：</strong></p>
-            <ul style="margin:10px 0 0 16px;line-height:2">
-              <li>完全基于 <strong>Attention 机制</strong>，抛弃递归和卷积</li>
-              <li>可以 <strong>并行计算</strong> 所有位置</li>
-              <li>直接建模 <strong>任意距离</strong> 的依赖关系</li>
-              <li>训练速度提升 <strong>10x+</strong></li>
-            </ul>
-          `
-        },
-        {
-          type: 'concept',
-          title: '🏗️ Transformer 完整架构',
-          html: `
-            <p><strong>Encoder-Decoder 结构：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(255,0,0,.05);border-left:3px solid var(--red);line-height:1.8">
-              <strong>Encoder (左侧)：</strong><br>
-              • Input Embedding + Positional Encoding<br>
-              • N × [ Multi-Head Self-Attention → Add&Norm → Feed Forward → Add&Norm ]<br>
-              • 输出：编码后的表示<br><br>
-
-              <strong>Decoder (右侧)：</strong><br>
-              • Output Embedding + Positional Encoding<br>
-              • N × [ Masked Multi-Head Self-Attention → Add&Norm → Cross-Attention → Add&Norm → Feed Forward → Add&Norm ]<br>
-              • Linear + Softmax → 输出概率分布
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="padding:12px;background:rgba(168,85,247,.08);border-left:3px solid var(--purple);border-radius:8px">
+                <strong>2017 · Transformer（Google）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Attention Is All You Need。抛弃 RNN，完全基于注意力机制。引用次数 >100,000。成为所有 LLM 的基础。</span>
+              </div>
+              <div style="padding:12px;background:rgba(0,229,255,.08);border-left:3px solid var(--cyan);border-radius:8px">
+                <strong>2018 · BERT + GPT（Google / OpenAI）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">BERT 只用 Encoder，双向预训练。GPT 只用 Decoder，单向生成。同一个架构，两种用法，催生了两条赛道。</span>
+              </div>
+              <div style="padding:12px;background:rgba(16,185,129,.08);border-left:3px solid var(--green);border-radius:8px">
+                <strong>2020 · GPT-3（OpenAI）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">175B 参数，涌现出 few-shot 学习能力。规模扩大带来了质变——这不是设计出来的，是发现的。</span>
+              </div>
+              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px">
+                <strong>2022 · Flash Attention（Dao 等）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">重写注意力计算的内存访问模式，速度提升 2-4x。让长上下文（100K+ tokens）变得实际可行。</span>
+              </div>
+              <div style="padding:12px;background:rgba(239,68,68,.08);border-left:3px solid var(--red);border-radius:8px">
+                <strong>2024-2026 · 超长上下文竞赛</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Gemini 1.5 Pro：1M tokens。Claude 3.5：200K tokens。长上下文使 RAG 在部分场景被直接替代，架构在继续演进。</span>
+              </div>
             </div>
-            <p style="font-size:.9rem;color:var(--muted)">
-              论文中使用 N=6 层，d_model=512，h=8 个注意力头
-            </p>
           `
-        },
-        {
-          type: 'code',
-          title: '📐 Scaled Dot-Product Attention 数学推导',
-          code: `import torch
-import torch.nn.functional as F
-
-def scaled_dot_product_attention(Q, K, V, mask=None):
-    """
-    Q: Query  [batch, heads, seq_len, d_k]
-    K: Key    [batch, heads, seq_len, d_k]
-    V: Value  [batch, heads, seq_len, d_v]
-
-    公式: Attention(Q,K,V) = softmax(QK^T / √d_k)V
-    """
-    d_k = Q.size(-1)
-
-    # 1. 计算注意力分数: QK^T
-    scores = torch.matmul(Q, K.transpose(-2, -1))
-
-    # 2. 缩放: 除以 √d_k (防止梯度消失)
-    scores = scores / torch.sqrt(torch.tensor(d_k, dtype=torch.float32))
-
-    # 3. 可选：应用 mask (用于 decoder 的因果注意力)
-    if mask is not None:
-        scores = scores.masked_fill(mask == 0, -1e9)
-
-    # 4. Softmax 归一化
-    attention_weights = F.softmax(scores, dim=-1)
-
-    # 5. 加权求和
-    output = torch.matmul(attention_weights, V)
-
-    return output, attention_weights`,
-          explanation: `
-            <strong>为什么要除以 √d_k？</strong><br>
-            • 当 d_k 很大时，QK^T 的方差会很大<br>
-            • 导致 softmax 进入饱和区，梯度接近 0<br>
-            • 除以 √d_k 可以保持方差稳定<br><br>
-            <strong>论文中的数学证明：</strong><br>
-            假设 Q 和 K 的元素是独立的随机变量，均值为 0，方差为 1，<br>
-            则 QK^T 的方差为 d_k，除以 √d_k 后方差变为 1
-          `
-        },
-        {
-          type: 'code',
-          title: '🎯 Multi-Head Attention 完整实现',
-          code: `class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model=512, num_heads=8):
-        super().__init__()
-        assert d_model % num_heads == 0
-
-        self.d_model = d_model
-        self.num_heads = num_heads
-        self.d_k = d_model // num_heads  # 每个头的维度
-
-        # 线性投影层
-        self.W_q = nn.Linear(d_model, d_model)
-        self.W_k = nn.Linear(d_model, d_model)
-        self.W_v = nn.Linear(d_model, d_model)
-        self.W_o = nn.Linear(d_model, d_model)
-
-    def forward(self, Q, K, V, mask=None):
-        batch_size = Q.size(0)
-
-        # 1. 线性投影并分割成多个头
-        Q = self.W_q(Q).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
-        K = self.W_k(K).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
-        V = self.W_v(V).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
-
-        # 2. 应用 scaled dot-product attention
-        attn_output, _ = scaled_dot_product_attention(Q, K, V, mask)
-
-        # 3. 合并多个头
-        attn_output = attn_output.transpose(1, 2).contiguous()
-        attn_output = attn_output.view(batch_size, -1, self.d_model)
-
-        # 4. 最终线性投影
-        output = self.W_o(attn_output)
-        return output`,
-          explanation: `
-            <strong>Multi-Head 的优势：</strong><br>
-            • 允许模型在不同的表示子空间关注不同的信息<br>
-            • 8 个头可以学习 8 种不同的注意力模式<br>
-            • 例如：语法关系、语义关系、位置关系等<br><br>
-            <strong>参数量：</strong> 4 × d_model² (4 个线性层)
-          `
-        },
-        {
-          type: 'code',
-          title: '📍 Positional Encoding 数学原理',
-          code: `import numpy as np
-
-def positional_encoding(seq_len, d_model):
-    """
-    PE(pos, 2i)   = sin(pos / 10000^(2i/d_model))
-    PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
-
-    pos: 位置 (0 到 seq_len-1)
-    i: 维度索引 (0 到 d_model/2-1)
-    """
-    pe = np.zeros((seq_len, d_model))
-
-    position = np.arange(seq_len)[:, np.newaxis]
-    div_term = np.exp(np.arange(0, d_model, 2) *
-                      -(np.log(10000.0) / d_model))
-
-    # 偶数维度使用 sin
-    pe[:, 0::2] = np.sin(position * div_term)
-    # 奇数维度使用 cos
-    pe[:, 1::2] = np.cos(position * div_term)
-
-    return pe`,
-          explanation: `
-            <strong>为什么用 sin/cos？</strong><br>
-            • 可以表示任意长度的序列（外推性）<br>
-            • 相对位置关系可以通过线性变换表示<br>
-            • PE(pos+k) 可以表示为 PE(pos) 的线性函数<br><br>
-            <strong>论文中的数学性质：</strong><br>
-            对于任意固定的偏移 k，PE(pos+k) 可以表示为 PE(pos) 的线性函数，<br>
-            这使得模型容易学习相对位置关系
-          `
-        },
-        {
-          type: 'concept',
-          title: '🔬 论文实验结果',
-          html: `
-            <p><strong>机器翻译任务 (WMT 2014)：</strong></p>
-            <ul style="margin:10px 0 0 16px;line-height:2">
-              <li><strong>英德翻译</strong>：BLEU 28.4 (超越之前最好的模型)</li>
-              <li><strong>英法翻译</strong>：BLEU 41.8 (新的 SOTA)</li>
-              <li><strong>训练时间</strong>：8 个 P100 GPU，3.5 天</li>
-              <li><strong>对比</strong>：之前最好的模型需要训练数周</li>
-            </ul>
-            <p style="margin-top:16px"><strong>消融实验 (Ablation Study)：</strong></p>
-            <ul style="margin:10px 0 0 16px;line-height:2">
-              <li>去掉 Positional Encoding → 性能大幅下降</li>
-              <li>减少注意力头数 → 性能下降</li>
-              <li>增加 d_model → 性能提升但收益递减</li>
-              <li>使用学习的位置编码 vs 固定的 sin/cos → 效果相当</li>
-            </ul>
-          `
-        },
-        {
-          type: 'concept',
-          title: '🌟 对后续研究的影响',
-          html: `
-            <p><strong>Transformer 催生的重要模型：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(255,0,0,.05);border-left:3px solid var(--red);line-height:1.8">
-              <strong>2018 - BERT</strong> (Google)：只用 Encoder，双向预训练<br>
-              <strong>2018 - GPT</strong> (OpenAI)：只用 Decoder，单向生成<br>
-              <strong>2019 - GPT-2</strong>：扩大规模，1.5B 参数<br>
-              <strong>2019 - T5</strong> (Google)：统一的 Text-to-Text 框架<br>
-              <strong>2020 - GPT-3</strong>：175B 参数，涌现能力<br>
-              <strong>2021 - CLIP</strong> (OpenAI)：视觉-语言 Transformer<br>
-              <strong>2022 - ChatGPT</strong>：GPT-3.5 + RLHF<br>
-              <strong>2023 - GPT-4</strong>：多模态 Transformer<br>
-              <strong>2024 - Claude 3</strong>：长上下文 Transformer
-            </div>
-            <p style="margin-top:16px;font-size:.9rem;color:var(--muted)">
-              Transformer 不仅改变了 NLP，还影响了计算机视觉 (ViT)、语音识别 (Whisper)、<br>
-              蛋白质结构预测 (AlphaFold2) 等多个领域！
-            </p>
-          `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ 实现中的关键细节',
-          items: [
-            'Layer Normalization 的位置：论文用 Post-LN，但 Pre-LN 训练更稳定（GPT-2 开始采用）',
-            'Warmup 学习率调度：前 4000 步线性增加，然后按 step^(-0.5) 衰减，这对训练稳定性至关重要',
-            'Dropout 的使用：在 Attention 权重、残差连接、Embedding 上都要加 Dropout (p=0.1)',
-            'Label Smoothing：使用 ε=0.1 的标签平滑，防止过拟合',
-            'Gradient Clipping：梯度裁剪防止梯度爆炸',
-            'Attention Mask：Decoder 必须使用因果 mask，防止看到未来信息',
-            '参数初始化：Xavier 初始化，对训练收敛速度影响很大',
-            'Batch Size：论文使用约 25000 个 tokens/batch，需要梯度累积'
-          ]
         },
         {
           type: 'quiz',
-          q: 'Transformer 为什么比 RNN/LSTM 训练更快？',
+          q: 'Transformer 中 Attention 机制的核心作用是什么？',
           opts: [
-            '因为 Transformer 的参数更少',
-            '因为 Self-Attention 可以并行计算所有位置，而 RNN 必须按顺序处理',
-            '因为 Transformer 使用了更好的优化器',
-            '因为 Transformer 的模型更简单'
+            '替代 Dropout，防止过拟合',
+            '让每个词在生成表示时，能直接查看句子中所有词并按相关性加权整合信息',
+            '压缩序列长度，减少计算量',
+            '把词向量映射到更高维度空间'
           ],
           ans: 1,
-          feedback_ok: '🔥 完全正确！并行化是 Transformer 的核心优势。RNN 的 t 时刻依赖 t-1 时刻，无法并行；而 Self-Attention 可以同时计算所有位置的表示，充分利用 GPU 的并行计算能力！',
-          feedback_err: '关键在于「并行计算」！RNN 必须等前一个时间步计算完才能计算下一个，而 Transformer 的 Self-Attention 可以同时处理所有位置，这是训练速度提升 10x+ 的根本原因！'
+          feedback_ok: '🔥 完美！Attention = 直接查询 + 加权整合。它解决了 RNN 的长距离衰减问题，并且让所有词可以并行计算，这就是 Transformer 速度提升 10x+ 的根本原因！',
+          feedback_err: 'Attention 的本质是"查询相关性"——处理每个词时，直接看整个序列，计算出"哪些词和我最相关"，然后按相关程度加权混合信息。这解决了 RNN 的两个核心问题：长距离衰减和无法并行。'
         }
       ]
     }

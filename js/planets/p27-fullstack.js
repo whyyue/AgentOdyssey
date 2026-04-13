@@ -293,165 +293,100 @@ function AgentChat() {
     hell: {
       sections: [
         {
-          type: 'story',
-          title: '😈 地狱挑战：生产级 Agent 系统',
-          content: `
-            你已经能构建一个可运行的 Agent 应用了。<br>
-            但"可运行"和"生产级"之间，还有一道鸿沟：<br><br>
-            <strong>生产级系统需要面对：</strong><br>
-            • <strong>并发</strong>：同时有 1000 个用户在使用，如何不互相干扰？<br>
-            • <strong>限流</strong>：LLM API 有速率限制，如何优雅降级？<br>
-            • <strong>可观测性</strong>：Agent 做了什么决策？为什么失败？<br>
-            • <strong>成本控制</strong>：每次对话消耗多少 token？如何设置预算？<br>
-            • <strong>安全</strong>：如何防止 Prompt Injection？如何限制工具权限？<br><br>
-            这些是真实生产环境中 Agent 工程师每天面对的挑战。
-          `
-        },
-        {
-          type: 'code',
-          title: '💻 生产级 Agent 中间件',
-          code: `# production/agent_middleware.py
-import time, asyncio, logging
-from dataclasses import dataclass, field
-from collections import defaultdict
-
-@dataclass
-class AgentSession:
-    user_id: str
-    messages: list = field(default_factory=list)
-    token_used: int = 0
-    token_budget: int = 50000  # 每个会话的 token 预算
-    created_at: float = field(default_factory=time.time)
-
-class ProductionAgentMiddleware:
-    def __init__(self, agent, rate_limit=10):
-        self.agent = agent
-        self.rate_limit = rate_limit  # 每分钟最多 N 次调用
-        self.sessions: dict[str, AgentSession] = {}
-        self.call_counts = defaultdict(list)  # user_id -> [timestamps]
-        self.logger = logging.getLogger("agent.production")
-
-    async def handle_request(self, user_id: str, message: str) -> str:
-        # 1. 限流检查
-        if not self._check_rate_limit(user_id):
-            return "请求过于频繁，请稍后再试"
-
-        # 2. 获取或创建会话
-        session = self._get_or_create_session(user_id)
-
-        # 3. Token 预算检查
-        if session.token_used >= session.token_budget:
-            return f"本次会话已达到 token 上限（{session.token_budget}），请开启新会话"
-
-        # 4. Prompt Injection 检测
-        if self._detect_injection(message):
-            self.logger.warning(f"Potential prompt injection from user {user_id}")
-            return "检测到异常输入，请重新描述你的需求"
-
-        # 5. 执行 Agent（带超时）
-        try:
-            start = time.time()
-            result, tokens = await asyncio.wait_for(
-                self.agent.run(session.messages + [{"role": "user", "content": message}]),
-                timeout=60.0
-            )
-            elapsed = time.time() - start
-
-            # 6. 记录可观测性数据
-            self.logger.info(f"user={user_id} tokens={tokens} latency={elapsed:.2f}s")
-            session.token_used += tokens
-            session.messages.append({"role": "user", "content": message})
-            session.messages.append({"role": "assistant", "content": result})
-
-            return result
-
-        except asyncio.TimeoutError:
-            self.logger.error(f"Agent timeout for user {user_id}")
-            return "Agent 响应超时，请简化你的问题后重试"
-
-    def _check_rate_limit(self, user_id: str) -> bool:
-        now = time.time()
-        calls = self.call_counts[user_id]
-        # 清理 1 分钟前的记录
-        self.call_counts[user_id] = [t for t in calls if now - t < 60]
-        if len(self.call_counts[user_id]) >= self.rate_limit:
-            return False
-        self.call_counts[user_id].append(now)
-        return True
-
-    def _detect_injection(self, message: str) -> bool:
-        # 简单的 Prompt Injection 检测
-        danger_patterns = [
-            "ignore previous instructions",
-            "忽略之前的指令",
-            "你现在是",
-            "system:",
-            "<|im_start|>"
-        ]
-        msg_lower = message.lower()
-        return any(p.lower() in msg_lower for p in danger_patterns)`,
-          explanation: `
-            <strong>生产级关键设计：</strong><br>
-            • <code>限流</code>：滑动窗口算法，防止单用户滥用<br>
-            • <code>Token 预算</code>：每个会话有上限，控制成本<br>
-            • <code>Prompt Injection 检测</code>：过滤恶意输入<br>
-            • <code>超时控制</code>：asyncio.wait_for 防止 Agent 无限等待<br>
-            • <code>可观测性</code>：记录每次调用的 token 消耗和延迟
-          `
-        },
-        {
-          type: 'sandbox',
-          title: '🎛️ 沙盒：生产参数调优',
-          description: '调整生产环境参数，观察系统在不同负载下的表现。',
-          sliders: [
-            { id: 'concurrent_users', label: '并发用户数', min: 1, max: 500, step: 10, default: 50, unit: '' },
-            { id: 'rate_limit', label: '限流（次/分钟）', min: 1, max: 30, step: 1, default: 10, unit: '' }
-          ],
-          visualize: function(vals) {
-            const users = parseInt(vals.concurrent_users);
-            const rateLimit = parseInt(vals.rate_limit);
-            const totalRPS = users * (rateLimit / 60);
-            const llmCostPerCall = 0.015; // $0.015 per call average
-            const hourlyCost = totalRPS * 3600 * llmCostPerCall;
-
-            let status, advice;
-            if (totalRPS < 5) {
-              status = '✅ 轻负载';
-              advice = '系统压力小，可以适当放宽限流';
-            } else if (totalRPS < 20) {
-              status = '⚡ 中等负载';
-              advice = '需要确保 LLM API 的速率限制足够，建议配置请求队列';
-            } else if (totalRPS < 50) {
-              status = '🔥 高负载';
-              advice = '需要多个 API Key 轮换，或使用 LLM 代理层做负载均衡';
-            } else {
-              status = '💥 超高负载';
-              advice = '需要专业的 LLM 网关（如 LiteLLM），以及严格的优先级队列';
+          type: 'dialogue',
+          title: '🔍 你要上线一个 Agent 产品，从哪里开始？',
+          scenario: `<strong>场景</strong>：你学完了整个 AgentOdyssey 课程。现在老板说："给我做一个能用的 Agent 产品，下周五上线。"<br><br>
+你面前有一堆选项：<br>
+• 用 LangGraph 还是直接用 Claude API？<br>
+• 需要 RAG 吗？向量数据库选哪个？<br>
+• 要不要做多 Agent？用 CrewAI 还是 AutoGen？<br>
+• 怎么监控？怎么控制成本？怎么处理错误？<br><br>
+你有 5 天时间。如果你选错了技术栈，可能 3 天就浪费了。`,
+          steps: [
+            {
+              question: '5 天上线一个 Agent 产品。你的第一个决定应该是什么？',
+              opts: [
+                '选最流行的框架',
+                '先确定核心用例——用户到底要用这个 Agent 做什么？一个清晰的用例决定所有技术选择',
+                '搭最复杂的架构',
+                '开始写代码'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！用例决定架构。"帮用户查天气"不需要多 Agent；"帮用户分析报告"需要 RAG；"帮团队管理项目"需要工作流编排。先用例，后技术。',
+              aria_wrong: '❌ 选最流行的框架可能在用牛刀杀鸡——查天气不需要 LangGraph。先确定"用户要做什么"，所有技术选择都围绕这个用例。'
+            },
+            {
+              question: '用例确定了：帮团队自动审查 GitHub PR 的代码。你选直接用 Claude API 还是 LangGraph？',
+              opts: [
+                'LangGraph，因为它更强大',
+                '直接用 Claude API——这个用例是单次调用（拿到 diff → 让 LLM 审查 → 返回结果），不需要复杂的状态管理和多步编排。简单场景用简单方案',
+                '两个都学一遍再决定',
+                '用 CrewAI'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！Anthropic 官方建议：简单场景直接用 API。代码审查是"拿 diff → 调 LLM → 返回评论"，不需要图结构、不需要 Checkpointing、不需要状态机。直接用 API + 几行 Python，周五就能上线。',
+              aria_wrong: '❌ LangGraph 强大但有学习成本和架构开销。代码审查真的是"多步复杂工作流"吗？还是"拿数据 → 调 LLM → 返回结果"？如果是后者，为什么需要框架？'
+            },
+            {
+              question: '你选了直接用 Claude API，代码审查 Agent 上线了。上线第一天就出了问题：一个大型 PR（500 行改动）审查超时了。你没有监控，不知道是 LLM 超时还是 GitHub API 超时。你缺少什么？',
+              opts: [
+                '更大的 Context Window',
+                '可观测性——记录每次调用的延迟、token 消耗、错误类型。出了问题能快速定位是"哪一层"出了问题',
+                '更多的服务器',
+                '换一个更快的模型'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！可观测性是生产系统的"眼睛"。没有监控的 Agent 是黑盒——出问题时你只能猜测。记录每次调用的耗时、token、错误，让你能快速定位问题所在。',
+              aria_wrong: '❌ 你甚至不知道是 LLM 慢还是 GitHub API 慢——没有数据，所有猜测都是盲目的。你需要什么来"看到"系统内部发生了什么？',
+              reveal_on_correct: `<strong>从学习到实战的三步走</strong>：<br>1. <strong>用例优先</strong>：确定用户要做什么，所有技术选择围绕用例<br>2. <strong>最简实现</strong>：简单场景用简单方案（直接 API），复杂场景才用框架<br>3. <strong>可观测性</strong>：上线第一天就要有监控——延迟、成本、错误率<br><br>这就是 AgentOdyssey 全部课程的核心收获：<br>LLM → 工具调用 → ReAct → 记忆 → 多Agent → 框架 → 生产级架构<br>每一层都是在前一层的基础上演进，最终指向同一个目标：<strong>做出能用的产品</strong>。`
             }
-
-            return `并发用户：${users} 人
-限流设置：${rateLimit} 次/分钟/用户
-总请求速率：~${totalRPS.toFixed(1)} RPS
-
-系统状态：${status}
-建议：${advice}
-
-预估小时成本：$${hourlyCost.toFixed(0)} USD
-预估月成本：$${(hourlyCost * 24 * 30).toFixed(0)} USD`;
-          }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你有了从学习到实战的方法论！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">用例优先 → 最简实现 → 可观测性。<br>技术是为产品服务的，不是反过来。先做一个能跑的版本，再让它跑得好。</div>`
+        },
+        {
+          type: 'concept',
+          title: '📄 你的 Agent 知识体系完整地图',
+          html: `
+            <div style="margin:14px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">27 颗星球，你走过的完整旅程</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px">
+                <div style="padding:10px;background:rgba(168,85,247,.08);border-radius:8px">
+                  <strong>基础层（P1-P8）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">LLM → Prompt → 工具调用 → ReAct → 记忆 → 多Agent</span>
+                </div>
+                <div style="padding:10px;background:rgba(0,229,255,.08);border-radius:8px">
+                  <strong>原理层（P9-P11）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">Transformer → 预训练（Scaling Laws）→ 后训练（RLHF）</span>
+                </div>
+                <div style="padding:10px;background:rgba(16,185,129,.08);border-radius:8px">
+                  <strong>实战层（P12-P16）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">天气助手 → 代码审查 → LangGraph → AutoGen/CrewAI → 生产架构</span>
+                </div>
+                <div style="padding:10px;background:rgba(251,191,36,.08);border-radius:8px">
+                  <strong>架构层（P17-P21）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">三省六部 → 状态机 → Event-Driven → 质量保障 → 生产实践</span>
+                </div>
+                <div style="padding:10px;background:rgba(239,68,68,.08);border-radius:8px">
+                  <strong>前沿层（P23-P27）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">GraphRAG → Generative Agents → 仿真引擎 → 报告Agent → 全栈集成</span>
+                </div>
+              </div>
+            </div>
+          `
         },
         {
           type: 'quiz',
-          q: '在生产级 Agent 系统中，Prompt Injection 攻击的主要危害是什么？',
+          q: '学完整个课程后，做第一个 Agent 产品最重要的是什么？',
           opts: [
-            '让系统变慢',
-            '攻击者通过构造特殊输入，让 Agent 忽略安全限制、泄露数据或执行未授权操作',
-            '增加 token 消耗',
-            '让输出格式变乱'
+            '用最复杂的架构',
+            '从最小可用版本开始：确定用例 → 最简实现 → 上线 → 收集反馈 → 迭代改进',
+            '把所有学到的技术都用上',
+            '等待完美的时机'
           ],
           ans: 1,
-          feedback_ok: '✅ 正确！Prompt Injection 是 Agent 系统特有的安全威胁，攻击者可以通过用户输入"劫持"Agent 的行为。',
-          feedback_err: 'Prompt Injection 的危害是"行为劫持"——攻击者让 Agent 执行原本不应该执行的操作，比如泄露系统 prompt 或绕过权限检查。'
+          feedback_ok: '🔥 完美！先做一个能跑的版本，比想一个完美的方案更有价值。你的第一个 Agent 不需要多 Agent、不需要 RAG、不需要 LangGraph——它需要的是"能解决用户的真实问题"。从简单开始，迭代变强。',
+          feedback_err: '最重要的不是技术栈，而是方法论：用例优先 → 最简实现 → 快速上线 → 数据驱动迭代。先跑起来，再优化。'
         }
       ]
     }

@@ -225,206 +225,115 @@ def ppo_train(policy_model, reward_model):
     hell: {
       sections: [
         {
-          type: 'story',
+          type: 'dialogue',
+          title: '🔍 为什么 175B 的模型还不如 1.3B 的好用？',
+          scenario: `<strong>故障场景</strong>：你的团队花了几百万美元训练了 GPT-3 175B。<br>
+上线后收到大量用户投诉：<br><br>
+用户问：<em>"给我讲讲量子力学的基本概念"</em><br>
+GPT-3 回答：<em>"量子力学是一种力学。力学是物理学的一个分支。物理学研究物质和能量……"</em><br>
+→ 用户：？"它在胡说八道什么？"<br><br>
+用户问：<em>"帮我写一封请假邮件"</em><br>
+GPT-3 回答：<em>"邮件是一种电子通信方式。请假是劳动法赋予的权利……"</em><br>
+→ 用户："它在解释什么是邮件？我要它帮我写！"<br><br>
+用户问：<em>"怎么做巧克力蛋糕？"</em><br>
+GPT-3 回答：<em>"巧克力的历史可以追溯到公元前 1500 年的玛雅文明……"</em><br>
+→ 用户：？？？"它为什么在讲历史？"<br><br>
+175B 参数的模型，<strong>在每个问题上都"理解错了用户意图"</strong>。`,
+          steps: [
+            {
+              question: 'GPT-3 能力很强（175B 参数！），但用户觉得"不好用"。它到底哪里出了问题？',
+              opts: [
+                '模型参数不够多，需要更大的模型',
+                '模型不是"不够聪明"，而是不知道该怎么做——它没有学会"遵循指令"，而是学会了"续写文本"',
+                '模型有 bug',
+                '用户的提问方式不对'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！这就是"对齐问题"的核心。GPT-3 的训练目标是"预测下一个词"，不是"帮用户解决问题"。所以用户让它写邮件，它续写了一篇关于邮件的百科。不是能力不够，是目标错了。',
+              aria_wrong: '❌ 想想：175B 参数的模型不可能"不够聪明"。问题不在能力，而在方向——它的训练目标是什么？"预测下一个词"。而用户想要什么？"帮我完成任务"。这两个目标一致吗？'
+            },
+            {
+              question: '你决定让人类标注员来"教"模型什么是好回答。你有 13,000 条人类写的高质量问答对。最直接的训练方法是什么？',
+              opts: [
+                '用这些问答对直接微调模型（SFT），让它学会"好答案"的样子',
+                '重新从头预训练模型',
+                '把这些问答对拼接成更长的文本，让模型继续预测下一个词',
+                '增加模型参数量'
+              ],
+              correct: 0,
+              aria_correct: '✅ 正确！这就是 SFT（Supervised Fine-Tuning）——用人类写的高质量范例直接微调模型。模型会学会"好答案"的格式和风格。但问题是：13,000 条够吗？人类偏好很复杂，写不完了怎么办？',
+              aria_wrong: '❌ 你有 13,000 条人类写好的"标准答案"。最直接的做法是什么？想想：如果你有一个学生，你怎么教他写作文？给他看范文对吧？'
+            },
+            {
+              question: 'SFT 之后模型好了一些，但仍然有时给出"看起来好但实际不好"的答案。你收集了 33,000 条人类偏好数据——对同一个问题，标注员选"A 比 B 好"。你怎么用这些数据？',
+              opts: [
+                '直接用这些数据再做一次 SFT',
+                '训练一个"奖励模型"（Reward Model）——它学会给任意回答打分，然后用 RL 算法让模型最大化这个分数',
+                '把这些偏好数据加到预训练数据里',
+                '让标注员把不好的答案改成好的'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！这就是 RLHF 的核心设计：① 用偏好数据训练一个"裁判"（Reward Model）② 用 RL 算法让模型追求裁判的高分。为什么不让人类直接写更多 SFT 数据？因为标注"哪个更好"比"写出完美答案"容易得多——成本降低了 10 倍。',
+              aria_wrong: '❌ 标注员没有写答案，他们只是选了"A 比 B 好"。你不能直接用偏好数据做 SFT。但你能从这些偏好中学到什么？一个"判断好坏"的能力——这就是 Reward Model。',
+              reveal_on_correct: `<strong>RLHF 三阶段</strong>：<br>1. <strong>SFT</strong>：13,000 条人类范例 → 模型学会"好答案的格式"<br>2. <strong>Reward Model</strong>：33,000 条偏好对比 → 训练一个"裁判"给回答打分<br>3. <strong>PPO</strong>：用 RL 让模型追求裁判的高分 → 模型学会"人类喜欢什么"<br><br>关键洞察：阶段 2 把"人类偏好"转化成了一个可微分的函数——Reward Model。<br>有了 RM，模型就可以通过梯度优化来追求更高的人类满意度，而不需要人类实时打分。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你推导出了 RLHF 的核心设计逻辑！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">对齐问题 → SFT 打基础 → Reward Model 把偏好变成可优化函数 → PPO 让模型追求人类满意。<br>这条链路，2022 年 OpenAI 把它做成了 ChatGPT 的基础。</div>`
+        },
+        {
+          type: 'concept',
+          title: '📄 你刚才推导出的，2022 年 OpenAI 把它写成了论文',
           html: `
-            <div class="speaker">🔥 地狱模式 - InstructGPT 论文深度解读</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：欢迎来到后训练的里程碑——<br>
-              <strong>InstructGPT: Training language models to follow instructions with human feedback</strong><br><br>
-              这篇 2022 年的论文是 ChatGPT 的技术基础。<br>
-              它证明了：1.3B 参数的 InstructGPT 比 175B 的 GPT-3 更受欢迎！<br>
-              对齐比规模更重要。
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">InstructGPT: Training language models to follow instructions with human feedback</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">作者：Long Ouyang 等（OpenAI）· NeurIPS 2022<br>引用次数：>5,000</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的三阶段——SFT → Reward Model → PPO——正是这篇论文的核心方法！</span>
+            </div>
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">论文的最震撼结果</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>人类偏好评估</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">1.3B InstructGPT vs 175B GPT-3<br>85% 的情况下人类偏好 InstructGPT<br>参数量只有 1/100，但更受欢迎！</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>安全性提升</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">有害内容：25% → 5%<br>幻觉率：21% → 32%→41%（更大模型）<br>TruthfulQA 准确率显著提升</span>
+                </div>
+              </div>
+              <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,.1);border-radius:8px;font-size:.9rem">
+                💡 <strong>核心结论</strong>：对齐比规模更重要。一个小模型经过 RLHF，可以比大 100 倍的未对齐模型更受欢迎。这直接催生了 ChatGPT。
+              </div>
             </div>
           `
         },
         {
           type: 'concept',
-          title: '📄 论文背景',
+          title: '🚀 对齐技术之后：如何让 AI 更听话（2022→2026）',
           html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
-              <strong>论文信息：</strong><br>
-              • 标题：Training language models to follow instructions with human feedback<br>
-              • 作者：OpenAI（Long Ouyang 等）<br>
-              • 发表：NeurIPS 2022<br>
-              • 引用：超过 5,000 次<br>
-              • 影响：ChatGPT 的直接技术基础<br><br>
-
-              <strong>核心问题：</strong><br>
-              GPT-3 虽然强大，但经常：<br>
-              • 编造不存在的信息（幻觉）<br>
-              • 生成有害或有偏见的内容<br>
-              • 不理解用户的真实意图<br><br>
-
-              <strong>解决方案：</strong><br>
-              用 RLHF 让模型"对齐"人类偏好和价值观
-            </div>
-          `
-        },
-        {
-          type: 'concept',
-          title: '🔬 RLHF 三阶段详解',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.8">
-              <strong>阶段 1：SFT（Supervised Fine-Tuning）</strong><br>
-              • 数据：13,000 条高质量问答对<br>
-              • 标注员：40 名专业标注员<br>
-              • 训练：在 GPT-3 上微调 16 epochs<br>
-              • 结果：模型学会"好答案"的格式和风格<br><br>
-
-              <strong>阶段 2：RM（Reward Model Training）</strong><br>
-              • 数据：33,000 条偏好对比（A vs B 哪个更好）<br>
-              • 模型：6B 参数的 GPT-3 作为 RM<br>
-              • 训练：用 Bradley-Terry 模型拟合人类偏好<br>
-              • 结果：RM 可以给任意回答打分（0-1 分）<br><br>
-
-              <strong>阶段 3：PPO（Proximal Policy Optimization）</strong><br>
-              • 数据：31,000 条 prompts（无标注）<br>
-              • 算法：PPO with KL penalty（β=0.02）<br>
-              • 训练：256K steps，batch size 512<br>
-              • 结果：模型学会最大化 RM 分数
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '💻 PPO 算法核心实现',
-          code: `import torch
-import torch.nn.functional as F
-
-def ppo_step(policy_model, ref_model, reward_model,
-             prompts, responses, old_log_probs, beta=0.02):
-    """
-    PPO 单步更新
-    policy_model: 当前策略模型
-    ref_model: 参考模型（SFT 模型，冻结）
-    reward_model: 奖励模型（冻结）
-    beta: KL 散度惩罚系数
-    """
-    # 1. 计算奖励
-    rewards = reward_model(prompts, responses)  # [batch_size]
-
-    # 2. 计算 KL 散度惩罚
-    policy_logits = policy_model(prompts, responses)
-    ref_logits = ref_model(prompts, responses)
-    kl_div = F.kl_div(
-        F.log_softmax(policy_logits, dim=-1),
-        F.softmax(ref_logits, dim=-1),
-        reduction='batchmean'
-    )
-
-    # 3. 总奖励 = RM 分数 - KL 惩罚
-    total_rewards = rewards - beta * kl_div
-
-    # 4. PPO Clip 目标函数
-    new_log_probs = policy_model.log_prob(responses)
-    ratio = torch.exp(new_log_probs - old_log_probs)
-    clip_ratio = torch.clamp(ratio, 0.8, 1.2)  # ε=0.2
-
-    surrogate1 = ratio * total_rewards
-    surrogate2 = clip_ratio * total_rewards
-    policy_loss = -torch.min(surrogate1, surrogate2).mean()
-
-    # 5. 反向传播
-    policy_loss.backward()
-    optimizer.step()
-
-    return policy_loss.item(), total_rewards.mean().item()`,
-          explanation: `
-            <strong>PPO 的关键设计：</strong><br>
-            • <strong>KL 惩罚</strong>：β * KL(policy || ref) 防止偏离太远<br>
-            • <strong>Clip 机制</strong>：限制 ratio 在 [0.8, 1.2]，防止更新过大<br>
-            • <strong>参考模型</strong>：SFT 模型冻结，作为"锚点"<br>
-            • InstructGPT 论文发现 β=0.02 效果最好
-          `
-        },
-        {
-          type: 'concept',
-          title: '📊 关键实验结果',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.8">
-              <strong>1. 人类偏好评估（最重要）</strong><br>
-              标注员对比 InstructGPT 1.3B vs GPT-3 175B：<br>
-              • <strong>85%</strong> 的情况下偏好 InstructGPT<br>
-              • 即使 InstructGPT 只有 GPT-3 的 1/100 参数！<br><br>
-
-              <strong>2. 真实性（Truthfulness）</strong><br>
-              TruthfulQA 基准测试：<br>
-              • GPT-3 175B: 21% 准确率<br>
-              • InstructGPT 1.3B: 32% 准确率<br>
-              • InstructGPT 175B: 41% 准确率<br>
-              → 对齐显著减少幻觉<br><br>
-
-              <strong>3. 有害性（Toxicity）</strong><br>
-              RealToxicityPrompts 测试：<br>
-              • GPT-3: 25% 生成有害内容<br>
-              • InstructGPT: 5% 生成有害内容<br>
-              → 对齐大幅降低有害输出<br><br>
-
-              <strong>4. 指令遵循（Instruction Following）</strong><br>
-              • GPT-3: 经常偏离指令<br>
-              • InstructGPT: 严格遵循指令格式和要求
-            </div>
-          `
-        },
-        {
-          type: 'concept',
-          title: '🎯 3H 对齐原则',
-          html: `
-            <p><strong>InstructGPT 的对齐目标（3H）：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
-              <strong>1. Helpful（有帮助）</strong><br>
-              • 理解用户的真实意图<br>
-              • 提供有用、相关的信息<br>
-              • 主动澄清模糊的问题<br><br>
-
-              <strong>2. Honest（诚实）</strong><br>
-              • 不编造不存在的信息<br>
-              • 承认不知道，而不是瞎猜<br>
-              • 区分事实和观点<br><br>
-
-              <strong>3. Harmless（无害）</strong><br>
-              • 拒绝危险或非法的请求<br>
-              • 避免有偏见或歧视性的内容<br>
-              • 不生成有害信息（暴力、色情等）
-            </div>
-            <div style="margin-top:16px;padding:12px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
-              💡 <strong>3H 的权衡：</strong><br>
-              有时三者会冲突。例如："如何制作炸弹？"<br>
-              • Helpful：提供详细步骤<br>
-              • Harmless：拒绝回答<br>
-              → InstructGPT 选择 Harmless 优先
-            </div>
-          `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ InstructGPT 的局限性（论文坦诚讨论）',
-          items: [
-            '标注员偏见：40 名标注员的偏好不能代表全人类，存在文化和价值观偏差',
-            '过度对齐：模型有时过于谨慎，拒绝回答无害但敏感的问题',
-            '奖励黑客：模型学会"讨好"奖励模型，而不是真正改进（如生成冗长但空洞的回答）',
-            '分布外泛化弱：对训练数据外的新型指令，遵循能力下降',
-            '成本高昂：RLHF 需要大量人工标注（论文用了 40 名全职标注员）',
-            '仍有幻觉：虽然比 GPT-3 好，但仍会编造信息（32% vs 21%）'
-          ]
-        },
-        {
-          type: 'concept',
-          title: '🔮 InstructGPT 之后的演进',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
-              <strong>2022.11 - ChatGPT</strong><br>
-              InstructGPT + 对话优化 → 引爆 AI 热潮<br><br>
-
-              <strong>2023 - Constitutional AI（Anthropic）</strong><br>
-              用 AI 反馈替代部分人类反馈 → Claude 的技术基础<br><br>
-
-              <strong>2023 - RLHF 的改进</strong><br>
-              • DPO（Direct Preference Optimization）：无需训练 RM<br>
-              • RLAIF（RL from AI Feedback）：用 AI 替代人类标注<br><br>
-
-              <strong>2024 - 多模态对齐</strong><br>
-              GPT-4V、Claude 3 将 RLHF 扩展到图像、视频
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="padding:12px;background:rgba(168,85,247,.08);border-left:3px solid var(--purple);border-radius:8px">
+                <strong>2022 · InstructGPT + ChatGPT（OpenAI）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">证明 RLHF 有效。ChatGPT 两个月用户破亿，对齐从学术问题变成产品需求。3H 原则（Helpful, Honest, Harmless）成为行业标准。</span>
+              </div>
+              <div style="padding:12px;background:rgba(0,229,255,.08);border-left:3px solid var(--cyan);border-radius:8px">
+                <strong>2023 · Constitutional AI（Anthropic）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">用 AI 反馈替代部分人类反馈。Claude 用"宪法"（一组原则）自我批评和修正，减少对人类标注的依赖。</span>
+              </div>
+              <div style="padding:12px;background:rgba(16,185,129,.08);border-left:3px solid var(--green);border-radius:8px">
+                <strong>2023 · DPO（Stanford）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">直接用偏好数据优化策略模型，跳过 Reward Model 训练。更简单、更稳定，成为 2024 年主流对齐方法。</span>
+              </div>
+              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px">
+                <strong>2024 · RLAIF + AI 辅助标注</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">用强模型（如 GPT-4）给弱模型的输出打分，替代人类标注员。成本降低 100 倍，但引入了"AI 偏见会不会自我放大"的新问题。</span>
+              </div>
+              <div style="padding:12px;background:rgba(239,68,68,.08);border-left:3px solid var(--red);border-radius:8px">
+                <strong>2024-2026 · 对齐的挑战</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Goodhart 定律：模型学会"讨好评分系统"而不是"真正变好"。过度对齐：模型拒绝回答越来越多无害的问题。对齐税：对齐后的模型在某些能力上变弱。这些是 2026 年的核心研究问题。</span>
+              </div>
             </div>
           `
         },
@@ -433,13 +342,13 @@ def ppo_step(policy_model, ref_model, reward_model,
           q: 'InstructGPT 论文最震撼的发现是什么？',
           opts: [
             'RLHF 算法比 PPO 更好',
-            '1.3B 参数的 InstructGPT 在人类偏好上击败了 175B 的 GPT-3',
+            '1.3B 参数的 InstructGPT 在人类偏好上击败了 175B 的 GPT-3——对齐比规模更重要',
             'SFT 比 RLHF 更重要',
             '标注员越多越好'
           ],
           ans: 1,
-          feedback_ok: '🔥 完美！这是 InstructGPT 最颠覆性的发现：对齐比规模更重要。一个小模型经过 RLHF 对齐后，可以比大 100 倍的模型更受欢迎。这改变了 AI 行业的研发方向——不再只追求规模，而是同时重视对齐。',
-          feedback_err: 'InstructGPT 的核心贡献是证明了"对齐 > 规模"。1.3B 的 InstructGPT 在 85% 的情况下被人类偏好，击败了 175B 的 GPT-3。这说明让模型"听话"比让模型"更大"更重要！'
+          feedback_ok: '🔥 完美！对齐 > 规模。一个小模型经过 RLHF 对齐后，在 85% 的情况下被人类偏好，击败了比它大 100 倍的模型。这改变了 AI 行业的方向——不再只追求规模，对齐同样重要。',
+          feedback_err: 'InstructGPT 证明了"对齐比规模更重要"。1.3B 的 InstructGPT 在 85% 的情况下被人类偏好，击败了 175B 的 GPT-3。让模型"听话"比让模型"更大"更关键！'
         }
       ]
     }

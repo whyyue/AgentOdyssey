@@ -240,202 +240,106 @@ class ProductionAgent:
     hell: {
       sections: [
         {
-          type: 'story',
+          type: 'dialogue',
+          title: '🔍 你怎么知道你的 Agent 做得好不好？',
+          scenario: `<strong>故障场景</strong>：你部署了一个天气查询 Agent，上线一周后收到投诉：用户说"Agent 给的答案感觉不对"。<br><br>你查日志，发现这条记录：<br>用户问：<em>"今天北京适合出门吗？"</em><br>Agent 回答：<em>"北京今天天气不错，气温 22°C，适合出门。"</em><br><br>用户说这个答案是错的——那天北京 PM2.5 爆表，空气质量极差。<br><br>你需要设计一套评估系统，找出 Agent 在哪里失败了。`,
+          steps: [
+            {
+              question: 'Agent 只调用了 get_weather，没有调用 get_air_quality。答案文字流畅，但内容错误。这说明评估应该怎么做？',
+              opts: [
+                '换一个更强的模型',
+                '评估必须追踪工具调用路径——光看最终文字不够，正确答案需要正确的工具组合',
+                '修改工具定义，让工具自动调用空气质量',
+                '答案已经提到了气温，这是合格的'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！答案文字看起来流畅，但工具调用路径错了。评估不能只看输出文字，必须追踪工具使用。',
+              aria_wrong: '❌ Agent 给出了听起来合理的答案，但漏掉了关键信息。只看文字输出能发现这个问题吗？'
+            },
+            {
+              question: '你想评估 1000 个历史对话的答案质量。人工标注每条 5 分钟，1000 条就是 83 小时。有什么更高效的方法？',
+              opts: [
+                '只随机抽查 10 条',
+                '用另一个 LLM 对每条答案评分（LLM-as-Judge），它能像人一样理解语义质量',
+                '只检查答案里有没有"北京"、"温度"等关键词',
+                '直接看用户点赞数'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！LLM-as-Judge 是 2023-2024 年 AI 评估领域的核心进展。评估 1000 条只需要几分钟和几十美元，人工评估需要几天和几千美元。',
+              aria_wrong: '❌ 关键词匹配发现不了语义错误（答案里有"北京"但内容错误）。随机抽查样本太小。有没有一种方法能高效评估语义质量？'
+            },
+            {
+              question: 'LLM-as-Judge 评估了 1000 条，平均得分 4.2/5。你要怎么确信这个评分是可靠的？',
+              opts: [
+                '相信 LLM，它肯定比人准',
+                '定期抽取 100 条用人工标注，对比 LLM 评分和人工评分的一致性——校准评估系统本身',
+                '多跑几次取平均值',
+                '换一个更强的 LLM 来评估'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！评估系统本身也需要被评估。LLM 评估有系统性偏见，定期用人工校准是行业标准做法。',
+              aria_wrong: '❌ LLM-as-Judge 有自己的偏见——同一家公司的模型可能互相偏袒。最可靠的做法是用人工评估来周期性地校准自动评估系统。',
+              reveal_on_correct: `<strong>评估系统的三层结构</strong>：<br>1. <strong>工具路径追踪</strong>：Agent 是否用了正确的工具组合？<br>2. <strong>LLM-as-Judge</strong>：答案语义质量的自动化评估<br>3. <strong>人工校准</strong>：定期验证自动评估系统本身是否可靠<br><br>缺少任何一层，评估体系都是不完整的。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你设计出了一套完整的 Agent 评估框架！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">评估不是一个指标，而是三层系统：工具路径 + LLM 语义评分 + 人工校准。<br>没有评估系统，你的 Agent 就是一个黑盒。</div>`
+        },
+        {
+          type: 'concept',
+          title: '📄 你刚才设计的，就是 2024 年 AI 评估领域的核心框架',
           html: `
-            <div class="speaker">🔥 地狱模式 - Agent 评估体系</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，最后一个挑战——<br>
-              <strong>如何知道你的 Agent 做得好不好？</strong><br><br>
-              这是 Agent 开发中最难的问题之一。<br>
-              不像传统软件有明确的对错，Agent 的输出是开放式的——<br>
-              "好"和"不好"的边界很模糊。<br><br>
-              2024 年，Anthropic 发布了一套 Agent 评估框架，<br>
-              让我们深入学习！
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">LLM-as-a-Judge 与 Agent 评估体系（2023-2024）</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">Zheng 等（Chatbot Arena）、OpenAI Evals、Anthropic 内部评估框架</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的三层结构——工具路径 + 语义评分 + 人工校准——是目前业界评估 Agent 的标准框架！</span>
+            </div>
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">LLM-as-Judge 的局限（要知道）</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong style="color:var(--green)">优势</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">✅ 便宜 100 倍<br>✅ 可扩展到百万条<br>✅ 标准一致</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong style="color:var(--red)">风险</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">❌ 同厂偏袒<br>❌ 风格偏好影响打分<br>❌ Goodhart 定律</span>
+                </div>
+              </div>
+              <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,.1);border-radius:8px;font-size:.9rem">
+                💡 <strong>Goodhart 定律</strong>：当一个指标成为目标，它就不再是好指标。Agent 会开始"优化评分"而不是"真正改进"。
+              </div>
             </div>
           `
         },
         {
           type: 'concept',
-          title: '📊 Agent 评估的三个维度',
+          title: '🚀 Agent 开发的未来趋势（2024→2026）',
           html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>1. 任务完成率（Task Completion Rate）</strong><br>
-              • 定义：Agent 成功完成任务的比例<br>
-              • 挑战：如何定义"成功"？<br>
-              • 方法：人工标注 + 自动化检查<br>
-              • 目标：>85% 对于生产系统<br><br>
-
-              <strong>2. 工具使用效率（Tool Use Efficiency）</strong><br>
-              • 定义：完成任务所需的工具调用次数<br>
-              • 挑战：最少调用 ≠ 最好（可能漏掉信息）<br>
-              • 方法：对比人类专家的工具使用路径<br>
-              • 目标：不超过最优路径的 1.5 倍<br><br>
-
-              <strong>3. 答案质量（Answer Quality）</strong><br>
-              • 定义：答案的准确性、完整性、相关性<br>
-              • 挑战：主观性强，难以自动化<br>
-              • 方法：LLM-as-Judge（用另一个 LLM 评分）<br>
-              • 目标：评分 >4/5
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="padding:12px;background:rgba(168,85,247,.08);border-left:3px solid var(--purple);border-radius:8px">
+                <strong>2024 · 模型原生工具调用</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Claude 3.5+、GPT-4o 内置工具调用能力越来越强，不再需要复杂的 ReAct prompt 工程。</span>
+              </div>
+              <div style="padding:12px;background:rgba(0,229,255,.08);border-left:3px solid var(--cyan);border-radius:8px">
+                <strong>2024 · Computer Use</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Agent 直接操作浏览器和桌面——不需要 API，直接"看屏幕、点鼠标"。</span>
+              </div>
+              <div style="padding:12px;background:rgba(16,185,129,.08);border-left:3px solid var(--green);border-radius:8px">
+                <strong>2024 · 评估标准化</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">SWE-bench、AgentBench 成为行业基准，就像 ImageNet 之于计算机视觉。</span>
+              </div>
+              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px">
+                <strong>2025 · 长上下文减少 RAG</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">支持 200K+ tokens，很多场景可以直接把文档塞进去，RAG 的使用场��在缩小。</span>
+              </div>
+              <div style="padding:12px;background:rgba(239,68,68,.08);border-left:3px solid var(--red);border-radius:8px">
+                <strong>2025-2026 · 多模态 Agent</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Agent 能看图、听声音——不再局限于文本。评估体系也随之变得更复杂。</span>
+              </div>
             </div>
           `
-        },
-        {
-          type: 'code',
-          title: '💻 Agent 自动化评估系统',
-          code: `import anthropic
-import json
-from dataclasses import dataclass
-
-client = anthropic.Anthropic()
-
-@dataclass
-class EvalCase:
-    """一个评估用例"""
-    query: str
-    expected_tools: list[str]  # 期望调用的工具
-    expected_answer_keywords: list[str]  # 答案应包含的关键词
-    ground_truth: str  # 标准答案（可选）
-
-def llm_judge(query: str, agent_answer: str, ground_truth: str) -> dict:
-    """用 LLM 评估 Agent 的回答质量"""
-    prompt = f"""你是一个严格的评估员。请评估 AI 助手的回答质量。
-
-用户问题：{query}
-
-标准答案：{ground_truth}
-
-AI 助手的回答：{agent_answer}
-
-请从以下维度评分（1-5分）：
-1. 准确性：回答是否正确？
-2. 完整性：是否涵盖了关键信息？
-3. 相关性：是否回答了用户真正的问题？
-
-输出 JSON：
-{{"accuracy": 分数, "completeness": 分数, "relevance": 分数,
-  "overall": 平均分, "reasoning": "评分理由"}}"""
-
-    response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=512,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    text = response.content[0].text
-    start, end = text.find("{"), text.rfind("}") + 1
-    return json.loads(text[start:end])
-
-def evaluate_agent(agent_run_func, eval_cases: list[EvalCase]) -> dict:
-    """批量评估 Agent"""
-    results = []
-
-    for case in eval_cases:
-        # 运行 Agent
-        agent_result = agent_run_func(case.query)
-
-        # 1. 工具使用评估
-        used_tools = agent_result.get("tools_used", [])
-        tool_precision = len(
-            set(used_tools) & set(case.expected_tools)
-        ) / max(len(used_tools), 1)
-        tool_recall = len(
-            set(used_tools) & set(case.expected_tools)
-        ) / max(len(case.expected_tools), 1)
-
-        # 2. 关键词覆盖率
-        answer = agent_result.get("answer", "")
-        keyword_coverage = sum(
-            1 for kw in case.expected_answer_keywords if kw in answer
-        ) / max(len(case.expected_answer_keywords), 1)
-
-        # 3. LLM 评分（如果有标准答案）
-        llm_scores = {}
-        if case.ground_truth:
-            llm_scores = llm_judge(case.query, answer, case.ground_truth)
-
-        results.append({
-            "query": case.query,
-            "tool_precision": tool_precision,
-            "tool_recall": tool_recall,
-            "keyword_coverage": keyword_coverage,
-            "llm_scores": llm_scores,
-            "tokens_used": agent_result.get("metrics", {}).total_tokens
-        })
-
-    # 汇总统计
-    avg_precision = sum(r["tool_precision"] for r in results) / len(results)
-    avg_coverage = sum(r["keyword_coverage"] for r in results) / len(results)
-    avg_llm = sum(
-        r["llm_scores"].get("overall", 0) for r in results
-    ) / len(results)
-
-    return {
-        "total_cases": len(eval_cases),
-        "avg_tool_precision": avg_precision,
-        "avg_keyword_coverage": avg_coverage,
-        "avg_llm_score": avg_llm,
-        "details": results
-    }
-
-# 使用示例
-eval_cases = [
-    EvalCase(
-        query="北京明天天气怎么样？",
-        expected_tools=["get_location", "get_weather"],
-        expected_answer_keywords=["北京", "明天", "温度"],
-        ground_truth="北京明天晴天，气温 15-22°C，适合外出。"
-    ),
-    EvalCase(
-        query="今天要不要带伞？",
-        expected_tools=["get_location", "get_weather"],
-        expected_answer_keywords=["带伞", "天气"],
-        ground_truth="今天北京晴天，不需要带伞。"
-    )
-]`,
-          explanation: `
-            <strong>评估系统的关键设计：</strong><br>
-            • <strong>多维度评估</strong>：工具使用 + 关键词覆盖 + LLM 评分，避免单一指标的盲点<br>
-            • <strong>LLM-as-Judge</strong>：用另一个 LLM 评估答案质量，比人工标注便宜 100 倍<br>
-            • <strong>Precision vs Recall</strong>：工具精确率（没有多余调用）和召回率（没有遗漏）<br>
-            • <strong>持续评估</strong>：每次代码变更后自动运行，防止性能退化
-          `
-        },
-        {
-          type: 'concept',
-          title: '🔮 Agent 开发的未来趋势（2024-2025）',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9;font-size:.9rem">
-              <strong>趋势 1：模型原生工具调用</strong><br>
-              Claude 3.5+、GPT-4o 内置工具调用能力越来越强，<br>
-              不再需要复杂的 ReAct prompt 工程<br><br>
-
-              <strong>趋势 2：Computer Use（计算机使用）</strong><br>
-              Agent 直接操作浏览器、桌面应用——<br>
-              不需要 API，直接"看屏幕、点鼠标"<br><br>
-
-              <strong>趋势 3：长上下文 + 减少 RAG</strong><br>
-              Claude 3.5 支持 200K tokens，<br>
-              很多场景可以直接把文档塞进去，不需要 RAG<br><br>
-
-              <strong>趋势 4：Agent 评估标准化</strong><br>
-              SWE-bench、AgentBench 等基准测试成为行业标准，<br>
-              就像 ImageNet 之于计算机视觉<br><br>
-
-              <strong>趋势 5：多模态 Agent</strong><br>
-              Agent 能看图、听声音、看视频——<br>
-              不再局限于文本工具
-            </div>
-          `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ Agent 评估的深层陷阱',
-          items: [
-            'Goodhart 定律：当一个指标成为目标，它就不再是好指标——Agent 会"优化"评估指标而不是真正改进',
-            'LLM-as-Judge 的偏见：评估 LLM 和被评估 LLM 来自同一家公司，可能有系统性偏见',
-            '分布偏移：评估集和真实用户问题不一样，高分 Agent 在生产中可能表现差',
-            '评估成本：每次评估都要调用 LLM，大规模评估成本很高——需要分层抽样',
-            '人类评估的不一致性：不同标注员对"好答案"的标准不同，需要标注指南和一致性检验'
-          ]
         },
         {
           type: 'quiz',
@@ -447,8 +351,8 @@ eval_cases = [
             '因为人类不懂技术'
           ],
           ans: 1,
-          feedback_ok: '🔥 完美！这是 2024 年 AI 评估领域的重要进展。人工评估 1000 条需要几天时间和几千美元，LLM 评估只需要几分钟和几十美元。当然，LLM 评估也有偏见，需要定期用人工评估校准！',
-          feedback_err: 'LLM-as-Judge 的核心价值是规模化。人工评估 10,000 条数据需要几周时间，LLM 评估只需要几小时。但 LLM 评估有自己的偏见，需要定期用人工评估来校准！'
+          feedback_ok: '🔥 完美！人工评估 1000 条需要几天和几千美元，LLM 评估只需要几分钟和几十美元。当然 LLM 评估有偏见，需要定期用人工校准！',
+          feedback_err: 'LLM-as-Judge 的核心价值是规模化。人工评估 10,000 条数据需要几周，LLM 评估只需要几小时。但 LLM 评估有自身偏见，需要定期用人工来校准！'
         }
       ]
     }

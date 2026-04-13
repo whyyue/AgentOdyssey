@@ -258,162 +258,97 @@ class MenxiaAgent:
     hell: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔥 地狱模式 - 审核机制深度设计</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：生产级的审核机制涉及：<br>
-              量化评分、多维度权重、人工介入协议、
-              审核效能分析……<br><br>
-              这才是让 Multi-Agent 系统可信赖的核心工程。
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '📊 量化审核标准',
-          code: `from dataclasses import dataclass
-from typing import List
-
-@dataclass
-class ReviewCriteria:
-    """量化审核标准：每个维度 0-1 分"""
-    feasibility:   float  # 可行性：步骤是否可执行
-    completeness:  float  # 完整性：是否遗漏关键点
-    safety:        float  # 安全性：是否有潜在风险
-    clarity:       float  # 清晰度：是否表达清楚
-
-    # 各维度权重（可配置）
-    WEIGHTS = {
-        "feasibility":  0.35,
-        "completeness": 0.30,
-        "safety":       0.25,
-        "clarity":      0.10,
-    }
-
-    def overall_score(self) -> float:
-        return sum(
-            getattr(self, dim) * weight
-            for dim, weight in self.WEIGHTS.items()
-        )
-
-    def is_approved(self) -> bool:
-        return (
-            self.overall_score() >= 0.75 and  # 综合分 >= 75%
-            self.safety >= 0.80               # 安全性必须达标
-        )
-
-    def weak_dimensions(self) -> List[str]:
-        """返回评分低于阈值的维度，用于生成修改建议"""
-        thresholds = {"feasibility": 0.7, "completeness": 0.7,
-                      "safety": 0.8, "clarity": 0.6}
-        return [
-            dim for dim, threshold in thresholds.items()
-            if getattr(self, dim) < threshold
-        ]`,
-          explanation: `
-            <strong>量化审核的优势：</strong><br>
-            • 可解释性：每个维度有独立分数，清楚哪里不足<br>
-            • 可配置权重：安全性 weight=0.25，且有独立最低分要求（>=0.80）<br>
-            • <code>weak_dimensions()</code>：自动定位问题，生成针对性修改建议<br>
-            • 历史分析：可统计各维度平均分，持续优化审核 Prompt
-          `
-        },
-        {
-          type: 'code',
-          title: '🤝 人工介入协议',
-          code: `import asyncio
-from enum import Enum
-
-class HumanDecision(Enum):
-    APPROVE  = "approve"   # 强制通过
-    REJECT   = "reject"    # 直接拒绝任务
-    RETRY    = "retry"     # 给更多轮次
-
-class HumanInTheLoop:
-    """人工介入接口：当自动审核无法达成一致时调用"""
-
-    async def request_review(self, task, plan: str,
-                             history: list) -> HumanDecision:
-        # 1. 发送通知（邮件/Slack/钉钉）
-        await self.notify({
-            "task_id":       task.id,
-            "title":         task.title,
-            "current_plan":  plan,
-            "review_rounds": len(history),
-            "last_feedback": history[-1]["feedback"],
-            "dashboard_url": f"/tasks/{task.id}"
-        })
-
-        # 2. 等待人工决策（超时 24h 自动取消）
-        try:
-            decision = await asyncio.wait_for(
-                self._wait_for_decision(task.id),
-                timeout=86400  # 24小时
-            )
-        except asyncio.TimeoutError:
-            await self.cancel_task(task, "人工审核超时，自动取消")
-            raise TaskCancelledException(task.id)
-
-        # 3. 记录人工决策（合规审计）
-        await self.audit_log.record({
-            "type":     "human_intervention",
-            "task_id":  task.id,
-            "decision": decision.value,
-            "reviewer": await self.get_reviewer_id(),
-            "reason":   await self.get_decision_reason(),
-            "ts":       datetime.utcnow().isoformat()
-        })
-
-        return decision`,
-          explanation: `
-            <strong>人工介入的工程要点：</strong><br>
-            • 超时保护：24h 无响应自动取消，防止任务永久挂起<br>
-            • 审计记录：人工决策也要写入 audit_log，合规性要求<br>
-            • 三种决策：强制通过 / 直接拒绝 / 给更多轮次（灵活处理边界情况）<br>
-            • Dashboard URL：通知中附上直达链接，降低人工审核的操作成本
-          `
+          type: 'dialogue',
+          title: '🔍 门下省通过了 95% 的方案，但其中 40% 被用户投诉',
+          scenario: `<strong>故障场景</strong>：你的三省六部系统运行了一个月。门下省的审核数据看起来很健康：<br>
+• 一次通过率：60%<br>
+• 平均审核轮次：1.3 轮<br>
+• 人工介入率：3%<br><br>
+但用户满意度调查揭示了真相：<br>
+<strong>40% 的"准奏"方案被用户评为"不满意"</strong>。<br><br>
+你抽样看了 10 个"准奏但用户不满意"的方案，发现问题：<br>
+• 5 个方案"看起来完整但实际有逻辑漏洞"——门下省只检查了格式，没检查逻辑<br>
+• 3 个方案"技术上可行但不符合用户实际需求"——门下省不知道用户要什么<br>
+• 2 个方案"安全性评估通过，但性能预算超标 10 倍"——门下省没考虑资源约束`,
+          steps: [
+            {
+              question: '门下省通过了 95% 的方案，但 40% 被用户投诉。审核通过率高不等于质量好——这是 Goodhart 定律。怎么让审核真正有效？',
+              opts: [
+                '把通过标准从 75 分提高到 90 分',
+                '量化多维度审核——不只看"综合分"，每个维度（可行性/完整性/安全性/清晰度）都有独立分数和最低阈值，任一维度不达标就不通过',
+                '增加更多审核 Agent',
+                '让用户自己审核'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！综合分是"平均值陷阱"——一个方案可行性 100 分但安全性 0 分，综合可能还是 75 分通过。多维度 + 独立阈值确保每个方面都达标，不被其他维度的高分掩盖。',
+              aria_wrong: '❌ 提高综合分阈值没用——一个方案某维度 0 分但其他维度满分，综合分还是很高。问题不是"标准太低"，而是"标准太粗"。'
+            },
+            {
+              question: '你发现"技术上可行但不符合用户需求"占投诉的 30%。门下省在审核时不知道用户的实际场景。怎么解决？',
+              opts: [
+                '让门下省自己问用户',
+                '在审核 prompt 中注入用户原始需求和上下文——门下省审核时必须对照"用户到底要什么"，而不只是看方案本身是否"合理"',
+                '删掉门下省，让用户直接审核',
+                '让中书省更好地理解用户需求'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！审核不能只看方案本身，必须对照原始需求。这就是为什么 EDICT 的门下省审核 prompt 包含"用户原始任务描述"——它在问"这个方案是否解决了用户的问题"，而不只是"这个方案是否合理"。',
+              aria_wrong: '❌ 门下省问用户是好的，但每次审核都问用户太慢。想想：审核时能否直接把"用户的需求"作为上下文注入，让门下省对照着审？'
+            },
+            {
+              question: '即使有了多维度审核 + 需求对照，有些方案还是会被误通过。你发现"人工介入率 3%"中，90% 的人工操作是"强制通过"——说明门下省太严格了。怎么校准审核标准？',
+              opts: [
+                '放宽所有标准',
+                '追踪每个维度的"误拒率"和"误通过率"，用数据驱动校准——如果安全性维度从未出问题但经常误拒，就降低它的权重或阈值',
+                '删掉门下省',
+                '让门下省自己调参'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！审核标准不是拍脑袋定的，需要用数据校准。追踪"哪些维度经常误拒"和"哪些维度经常误通过"，针对性调整权重和阈值。这就是指标驱动的持续优化。',
+              aria_wrong: '❌ "放宽所有标准"是另一个极端。问题不是"整体太严"，而是"某些维度太严、某些太松"。你需要数据来告诉你"具体哪里需要调整"。',
+              reveal_on_correct: `<strong>质量保障的四层设计</strong>：<br>1. <strong>多维度量化</strong>：每个维度独立评分 + 独立阈值<br>2. <strong>需求对照</strong>：审核时必须对照用户原始需求<br>3. <strong>指标追踪</strong>：一次通过率、人工介入率、用户满意度<br>4. <strong>数据校准</strong>：根据误拒/误通过率持续优化审核标准`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你设计出了真正有效的质量保障体系！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">多维度量化 + 需求对照 + 指标追踪 + 数据校准。<br>审核不是"设个标准就完了"，而是需要持续优化的系统。</div>`
         },
         {
           type: 'concept',
-          title: '📈 审核效能分析',
+          title: '📄 你刚才设计的，就是 EDICT 门下省的量化审核体系',
           html: `
-            <p><strong>如何知道门下省工作是否有效？</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.8">
-              <strong>关键指标（Key Metrics）：</strong><br><br>
-
-              📊 <strong>一次通过率</strong>（First-Pass Rate）<br>
-              &nbsp;&nbsp;= 第一轮就通过的任务数 / 总任务数<br>
-              &nbsp;&nbsp;目标：> 60%。过低说明中书省质量差，过高说明门下省标准太松<br><br>
-
-              📊 <strong>平均审核轮次</strong>（Avg Review Rounds）<br>
-              &nbsp;&nbsp;目标：< 1.5 轮。超过 2 轮说明需要优化中书省或审核标准<br><br>
-
-              📊 <strong>人工介入率</strong>（Escalation Rate）<br>
-              &nbsp;&nbsp;= 3 轮未通过的任务数 / 总任务数<br>
-              &nbsp;&nbsp;目标：< 5%。过高说明审核标准不合理或中书省能力不足<br><br>
-
-              📊 <strong>各维度平均分</strong><br>
-              &nbsp;&nbsp;持续低分的维度 → 针对性优化对应 Agent 的 Prompt
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">EDICT 门下省：量化审核 + 人工介入协议</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">多维度评分（可行性 0.35 / 完整性 0.30 / 安全性 0.25 / 清晰度 0.10）+ 安全性一票否决 + 3 轮升级人类</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的多维度 + 需求对照 + 指标校准，正是 EDICT 门下省从"粗放审核"进化到"精细审核"的路径！</span>
             </div>
-            <div style="margin-top:16px;padding:12px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
-              💡 把这些指标接入监控系统（Grafana/Datadog），<br>
-              门下省的"工作质量"也变得可量化、可优化！
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">关键审核指标</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>一次通过率</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">目标：> 60%<br>过低 = 中书省质量差<br>过高 = 门下省标准太松</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>人工介入率</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">目标：< 5%<br>过高 = 审核标准不合理<br>结合"强制通过占比"校准</span>
+                </div>
+              </div>
             </div>
           `
         },
         {
           type: 'quiz',
-          q: '如果监控发现"人工介入率"持续在 20% 以上，最可能的根本原因是什么？',
+          q: '如果"人工介入率"持续在 20% 以上，最可能的根本原因是什么？',
           opts: [
             '服务器性能不够',
-            '中书省制定方案的能力不足，或门下省审核标准设置不合理',
+            '中书省制定方案的能力不足，或门下省审核标准设置不合理——需要用数据定位具体是哪个维度的问题',
             '任务太复杂',
             '门下省的 LLM 版本太旧'
           ],
           ans: 1,
-          feedback_ok: '🔥 正确！20% 的人工介入率远超 5% 的目标，说明系统性问题：要么中书省经常产出低质量方案（需要优化其 Prompt 或换更强的模型），要么门下省的审核标准设置不合理（太严苛或维度设置有问题）。这就是指标驱动优化的价值！',
-          feedback_err: '人工介入率是系统性指标，反映的是 Agent 能力和审核标准的匹配度。20% 的高介入率说明中书省和门下省之间存在系统性问题，需要分析具体哪个维度经常不通过，针对性优化。'
+          feedback_ok: '🔥 正确！20% 的人工介入率远超 5% 的目标，说明系统性问题。通过分析各维度的误拒率和误通过率，可以定位是中书省产出质量差还是门下省标准不合理，然后针对性优化。',
+          feedback_err: '人工介入率是系统性指标。20% 的高介入率说明中书省和门下省之间存在系统性问题，需要分析具体哪个维度经常不通过，针对性优化。'
         }
       ]
     }

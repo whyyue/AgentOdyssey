@@ -189,166 +189,120 @@ result = app.invoke({
     hell: {
       sections: [
         {
-          type: 'story',
+          type: 'dialogue',
+          title: '🔍 你的 Agent 工作流跑了一半崩了，所有进度全丢了',
+          scenario: `<strong>故障场景</strong>：你用 LangGraph 搭了一个研究 Agent，工作流是：<br>
+<strong>搜索 → 摘要 → 翻译 → 审校 → 生成报告</strong>（5 个步骤）<br><br>
+处理一篇长文档时，第 3 步"翻译"API 超时了。<br>
+Agent 报错停止。<br><br>
+你重新运行——Agent 从第 1 步"搜索"重新开始。<br>
+搜索又要花 30 秒，API 又要花钱。<br>
+你已经做过搜索和摘要了，为什么不能从第 3 步继续？<br><br>
+更糟的是：用户问了 5 个问题，Agent 在处理第 3 个问题时崩了。<br>
+前 2 个问题的结果也没了。`,
+          steps: [
+            {
+              question: '工作流跑到一半崩了，重新开始要重复已完成的步骤。你需要什么能力？',
+              opts: [
+                '让每个步骤更快，减少崩溃概率',
+                '在每个步骤完成后保存状态——崩溃后从最后完成的步骤恢复，而不是从头开始',
+                '用更稳定的 API',
+                '把所有步骤合并成一步'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！这就是 Checkpointing（检查点）——每个节点执行后自动保存状态。崩溃后从最后一个检查点恢复，而不是从头来。这是 LangGraph 最核心的生产特性。',
+              aria_wrong: '❌ 让步骤更快只是降低崩溃概率，不解决根本问题——总会崩的。你需要的是"崩了之后怎么办"的机制。'
+            },
+            {
+              question: '你有了 Checkpointing，每个步骤执行后保存状态。但不同用户的请求怎么区分？用户 A 的搜索结果不能混到用户 B 的回复里。你需要什么？',
+              opts: [
+                '给每个用户创建独立的数据库',
+                '给每个请求分配唯一标识（thread_id），Checkpointing 按 thread_id 隔离状态',
+                '串行处理所有请求，同一时间只处理一个',
+                '用不同的 API key'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！thread_id 是多用户隔离的标准方案。每个请求有独立的 thread_id，状态按 thread_id 存储。用户 A 的检查点和用户 B 的检查点完全独立。这也让你可以查看任意用户的历史状态。',
+              aria_wrong: '❌ 串行处理会让 200 个用户排队等——用户体验灾难。想想：你能不能给每个请求打一个标签，让状态存储按标签区分？'
+            },
+            {
+              question: '有了 Checkpointing + thread_id 隔离，你的系统稳定了。但产品经理说："我想看用户 C 昨天下午 3 点的 Agent 执行到哪一步了，当时的中间结果是什么。" 你需要什么能力？',
+              opts: [
+                '把所有执行日志打印到文件',
+                '保留完整的检查点历史（不是只保留最新的），支持时间旅行——回溯到任意历史状态查看',
+                '让用户截图保存',
+                '在数据库里存每一步的输入输出'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！LangGraph 的 get_state_history() 就是这个能力——它保留所有历史检查点，你可以回溯到任意时刻。这不只是调试工具，也是审计和合规的核心需求。',
+              aria_wrong: '❌ 打印日志和截图都不够结构化。想想：你已经有了 Checkpointing（每步保存状态），如果保留所有检查点而不只是最新的，你能做到什么？',
+              reveal_on_correct: `<strong>LangGraph 的三个核心生产特性</strong>：<br>1. <strong>Checkpointing</strong>：每个节点执行后自动保存状态 → 崩溃后从断点恢复<br>2. <strong>thread_id 隔离</strong>：不同用户/会话的状态完全独立 → 多用户并发安全<br>3. <strong>时间旅行</strong>：保留完整检查点历史 → 回溯任意时刻的状态<br><br>灵感来源：Google 的 Pregel 图计算模型——节点独立计算、消息传递、超步执行。LangGraph 把这套分布式计算的思想用在了 Agent 工作流上。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你推导出了 Agent 工作流框架的核心设计！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">检查点 + 状态隔离 + 时间旅行 = 生产级工作流框架。<br>没有这些特性的框架，只能做 demo，不能做生产。</div>`
+        },
+        {
+          type: 'concept',
+          title: '📄 你刚才推导出的，LangGraph 把它做成了产品',
           html: `
-            <div class="speaker">🔥 地狱模式 - LangGraph 源码级理解</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，LangGraph 的设计灵感来自哪里？<br><br>
-              它借鉴了两个经典概念：<br>
-              <strong>Pregel</strong>（Google 的图计算框架）<br>
-              <strong>Actor 模型</strong>（Erlang/Akka 的并发模型）<br><br>
-              理解这些，你就能理解为什么 LangGraph 这样设计，<br>
-              以及什么时候它会出问题！
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">LangGraph：基于图结构的 Agent 工作流框架</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">LangChain 团队 · 2023-2024<br>灵感来源：Google Pregel（图计算）+ Actor 模型（并发）</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的三个特性——检查点、隔离、时间旅行——正是 LangGraph 区别于其他框架的核心能力！</span>
+            </div>
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">LangGraph vs 直接用 API</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>用 LangGraph</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">✅ 5+ 步骤的复杂工作流<br>✅ 需要循环和条件分支<br>✅ 需要持久化状态<br>✅ Human-in-the-loop<br>✅ 团队协作可视化</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>直接用 Claude API</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">✅ 简单单次调用<br>✅ 需要最大灵活性<br>✅ 延迟敏感场景<br>✅ 学习和理解底层原理<br>✅ Anthropic 官方推荐</span>
+                </div>
+              </div>
             </div>
           `
         },
         {
           type: 'concept',
-          title: '🏗️ LangGraph 的底层模型：Pregel',
+          title: '🚀 Agent 框架的演进（2023→2026）',
           html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>Pregel 模型（Google，2010）：</strong><br>
-              • 图中每个节点独立计算，通过消息传递通信<br>
-              • 计算分为多个"超步"（Superstep）<br>
-              • 每个超步：所有节点接收消息 → 计算 → 发送消息<br>
-              • 直到没有消息传递，计算结束<br><br>
-
-              <strong>LangGraph 的映射：</strong><br>
-              • 节点 = Agent 或处理函数<br>
-              • 消息 = State 的更新<br>
-              • 超步 = 一轮节点执行<br>
-              • 终止条件 = 到达 END 节点
-            </div>
-            <div style="margin-top:14px;padding:12px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
-              💡 <strong>为什么这很重要？</strong><br>
-              Pregel 模型天然支持并行——同一超步中的多个节点可以并发执行！<br>
-              LangGraph 的 <code>add_node</code> 并行执行就是基于这个原理。
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '💻 LangGraph 高级特性：子图 + 并行节点',
-          code: `from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
-from typing import TypedDict
-
-# ===== 子图（Subgraph）：把复杂逻辑封装成可复用的子图 =====
-
-class SearchState(TypedDict):
-    query: str
-    results: list[str]
-
-def web_search(state):
-    return {"results": [f"网页结果: {state['query']}"]}
-
-def news_search(state):
-    return {"results": [f"新闻结果: {state['query']}"]}
-
-# 构建搜索子图
-search_subgraph = StateGraph(SearchState)
-search_subgraph.add_node("web", web_search)
-search_subgraph.add_node("news", news_search)
-search_subgraph.set_entry_point("web")
-search_subgraph.add_edge("web", "news")
-search_subgraph.add_edge("news", END)
-compiled_search = search_subgraph.compile()
-
-# ===== 主图：使用子图 + 并行节点 =====
-
-class MainState(TypedDict):
-    query: str
-    search_results: list[str]
-    analysis: str
-    final_answer: str
-
-def run_search(state):
-    result = compiled_search.invoke({"query": state["query"], "results": []})
-    return {"search_results": result["results"]}
-
-def analyze(state):
-    return {"analysis": f"分析: {len(state['search_results'])} 条结果"}
-
-def synthesize(state):
-    return {"final_answer": f"综合答案: {state['analysis']}"}
-
-main_graph = StateGraph(MainState)
-main_graph.add_node("search", run_search)
-main_graph.add_node("analyze", analyze)
-main_graph.add_node("synthesize", synthesize)
-
-main_graph.set_entry_point("search")
-main_graph.add_edge("search", "analyze")
-main_graph.add_edge("analyze", "synthesize")
-main_graph.add_edge("synthesize", END)
-
-# ===== Checkpointing：持久化状态，支持中断恢复 =====
-memory = MemorySaver()
-app = main_graph.compile(checkpointer=memory)
-
-# 每次调用都有 thread_id，同一 thread 的状态会被保存
-config = {"configurable": {"thread_id": "user_123"}}
-result = app.invoke({"query": "AI 最新进展", "search_results": [],
-                     "analysis": "", "final_answer": ""}, config)
-
-# 可以随时查看某个 thread 的历史状态
-history = list(app.get_state_history(config))
-print(f"共 {len(history)} 个检查点")`,
-          explanation: `
-            <strong>高级特性解析：</strong><br>
-            • <strong>子图（Subgraph）</strong>：把复杂逻辑封装成可复用模块，主图保持简洁<br>
-            • <strong>Checkpointing</strong>：每个节点执行后自动保存状态，支持中断恢复和时间旅行调试<br>
-            • <strong>thread_id</strong>：区分不同用户/会话的状态，实现多用户隔离<br>
-            • <strong>get_state_history</strong>：查看完整执行历史，方便调试和审计
-          `
-        },
-        {
-          type: 'concept',
-          title: '📊 LangGraph vs 直接调用 Claude API',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.8">
-              <strong>什么时候用 LangGraph：</strong><br>
-              ✅ 复杂的多步骤工作流（5+ 个节点）<br>
-              ✅ 需要循环和条件分支<br>
-              ✅ 需要持久化状态（用户会话）<br>
-              ✅ 需要人工介入（Human-in-the-loop）<br>
-              ✅ 团队协作，需要可视化工作流<br><br>
-
-              <strong>什么时候直接用 Claude API：</strong><br>
-              ✅ 简单的单次调用<br>
-              ✅ 需要最大灵活性<br>
-              ✅ 框架开销不可接受（延迟敏感）<br>
-              ✅ 学习阶段，理解底层原理<br><br>
-
-              <strong>Anthropic 官方建议：</strong><br>
-              对于简单 Agent，直接用 API 更清晰。<br>
-              框架适合复杂编排，但不要为了用框架而用框架。
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="padding:12px;background:rgba(168,85,247,.08);border-left:3px solid var(--purple);border-radius:8px">
+                <strong>2023 · LangChain（第一代）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Chain（链式调用）抽象。快速原型，但复杂流程难以控制。链太长、错误处理弱、状态管理混乱。</span>
+              </div>
+              <div style="padding:12px;background:rgba(0,229,255,.08);border-left:3px solid var(--cyan);border-radius:8px">
+                <strong>2023-2024 · LangGraph（第二代）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">基于图的工作流。节点、边、条件路由。Checkpointing 改变了游戏规则——生产部署成为可能。学习曲线陡但值得。</span>
+              </div>
+              <div style="padding:12px;background:rgba(16,185,129,.08);border-left:3px solid var(--green);border-radius:8px">
+                <strong>2024 · Anthropic 官方立场</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">对大多数场景，直接用 Claude API + 简单 Python 比引入框架更清晰、更可控。"不要为了用框架而用框架。"</span>
+              </div>
+              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px">
+                <strong>2025-2026 · 模型原生工作流</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">模型内置工具调用越来越强，很多原本需要框架编排的场景，现在一个 prompt + 几行代码就能搞定。框架在简化，不是在变复杂。</span>
+              </div>
             </div>
           `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ LangGraph 的深层陷阱',
-          items: [
-            '状态序列化问题：State 中包含不可序列化的对象（如文件句柄），Checkpointing 会失败——State 只存可序列化的数据',
-            '并行节点的竞争条件：两个并行节点同时更新同一个 State 字段，结果不确定——用 Annotated + operator.add 定义合并策略',
-            '子图状态隔离：子图有自己的 State，主图无法直接访问子图内部状态——需要显式映射',
-            '调试困难：多层嵌套的图，出错时堆栈很深——使用 LangSmith 可视化追踪',
-            '版本锁定风险：LangGraph 0.1→0.2 有 breaking changes，升级需要重写部分代码'
-          ]
         },
         {
           type: 'quiz',
-          q: 'LangGraph 的 Checkpointing 功能最重要的用途是什么？',
+          q: 'LangGraph 的 Checkpointing 最重要的用途是什么？',
           opts: [
             '让代码运行更快',
-            '保存每个节点执行后的状态，支持中断恢复、时间旅行调试和多用户会话隔离',
+            '保存每个节点执行后的状态，支持崩溃恢复、多用户隔离和历史回溯',
             '减少 API 调用次数',
             '自动优化 prompt'
           ],
           ans: 1,
-          feedback_ok: '🔥 完美！Checkpointing 是 LangGraph 的杀手级特性。想象一个需要 30 分钟的复杂工作流，中途网络断了——有 Checkpointing 可以从断点继续，没有就要从头来！',
-          feedback_err: 'Checkpointing 解决了长时间工作流的可靠性问题。它保存每一步的状态，让你可以：1) 中断后恢复 2) 回溯到任意历史状态调试 3) 区分不同用户的会话'
+          feedback_ok: '🔥 完美！Checkpointing 是 LangGraph 的杀手级特性。30 分钟的工作流跑到第 25 分钟崩了——有 Checkpointing 从第 25 分钟继续，没有就要从头来。生产环境的必备能力。',
+          feedback_err: 'Checkpointing 解决的是"可靠性"问题——保存每步状态，崩溃后恢复，多用户隔离，历史可回溯。没有它，长时间工作流就是定时炸弹。'
         }
       ]
     }

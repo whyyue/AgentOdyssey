@@ -188,180 +188,118 @@ def weather_agent(query: str) -> str:
     hell: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔥 地狱模式 - 生产级天气 Agent</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，把 Agent 从 demo 变成生产系统，<br>
-              需要解决三个核心问题：<br><br>
-              <strong>1. 可靠性</strong>：工具超时、API 失败怎么办？<br>
-              <strong>2. 成本控制</strong>：Token 消耗失控怎么办？<br>
-              <strong>3. 可观测性</strong>：出问题了怎么排查？<br><br>
-              这三个问题，是所有生产 Agent 都必须解决的！
-            </div>
-          `
+          type: 'dialogue',
+          title: '🔍 你的天气 Agent 上线了，然后炸了',
+          scenario: `<strong>故障场景</strong>：你的天气 Agent 上线第一天，一切正常。第二天高峰期（早 8-9 点），同时有 200 个用户查询天气。<br><br>
+然后你收到一连串告警：<br>
+• 用户 A：等了 30 秒没反应，超时了<br>
+• 用户 B：收到了"北京今天晴"——但 B 问的是上海<br>
+• 用户 C：Token 费用是平时的 50 倍<br>
+• 用户 D：Agent 返回了"抱歉，查询失败"——但天气 API 其实是正常的<br><br>
+200 个用户、4 种不同的故障。你的 demo 代码扛不住了。`,
+          steps: [
+            {
+              question: '用户 B 问的是上海天气，却收到了北京的。你的代码里，用户 A 的查询结果和用户 B 的请求混在了一起。这是哪种 bug？',
+              opts: [
+                '天气 API 返回了错误数据',
+                '并发竞争——多个请求共享了同一个变量（如全局 messages 列表），用户 A 的上下文泄漏到了用户 B 的回复中',
+                '模型幻觉——AI 随机编了一个北京天气',
+                '用户 B 的定位服务出错'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！这是生产环境最常见的 bug：共享状态竞争。demo 阶段只有一个用户，全局变量没问题。200 个用户并发时，请求 A 的上下文和请求 B 的上下文混在一起了。解法：每个请求创建独立的变量，不共享任何可变状态。',
+              aria_wrong: '❌ 想想：为什么用户 B 收到的是"北京"而不是"上海"？因为用户 A 刚问了北京，而你的代码里有什么被两个请求共享了？'
+            },
+            {
+              question: '用户 C 的 Token 费用是平时的 50 倍。你查日志发现：天气 API 返回了 502 错误，Agent 反复重试了 10 次，每次都把完整的对话历史发给 LLM。怎么修复？',
+              opts: [
+                '不重试，失败就直接返回错误',
+                '设置重试上限（如 3 次）+ Token 预算硬限制——无论重试多少次，总 Token 不能超过预算',
+                '缩短对话历史，只保留最后两条',
+                '换一个更便宜的模型'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！两层防护：① 重试上限防止无限循环 ② Token 预算作为硬性天花板。即使 Agent 逻辑有 bug 导致疯狂重试，Token 预算也能在成本失控前强制停止。这是生产系统的"安全阀"思维。',
+              aria_wrong: '❌ 不重试太极端——网络抖动导致的临时 502 重试一次就好了。问题是"重试多少次才停？消耗多少 token 才停？"。你需要的是上限，不是禁用。'
+            },
+            {
+              question: '用户 D 的 Agent 返回了"查询失败"——但天气 API 其实正常返回了数据。你发现工具调用的返回格式和 Agent 期望的不一致。怎么防止这种格式不匹配？',
+              opts: [
+                '让 LLM 自己处理各种格式',
+                '在工具调用和 LLM 之间加一层标准化适配——把工具返回的原始数据统一转成 Agent 能理解的格式',
+                '手动检查每次返回的格式',
+                '换一个更好的天气 API'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！这就是"适配器模式"——工具返回什么格式不重要，适配器把它转成 Agent 期望的标准格式。API 返回 {"temp": 25, "code": 1}，适配器转成 "晴天，25°C"。这样即使 API 格式变了，也只需要改适配器，不影响 Agent 逻辑。',
+              aria_wrong: '❌ LLM 处理格式不稳定——它可能正确解析一次，下一次就出错。想想：你能不能在"工具返回"和"LLM 看到结果"之间，加一层什么东西来保证格式？',
+              reveal_on_correct: `<strong>生产 Agent 的三层防护</strong>：<br>1. <strong>隔离</strong>：每个请求独立的状态，不共享可变数据（解决并发竞争）<br>2. <strong>预算</strong>：Token 上限 + 重试上限（解决成本失控）<br>3. <strong>适配</strong>：工具和 LLM 之间的格式标准化层（解决接口不匹配）<br><br>缺少任何一层，生产环境都会出问题。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你诊断出了生产 Agent 的三大类故障！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">并发竞争 + 成本失控 + 格式不匹配——这就是 demo 和生产系统的差距。<br>解法：隔离 + 预算 + 适配，三层防护缺一不可。</div>`
         },
         {
-          type: 'code',
-          title: '💻 生产级天气 Agent',
-          code: `import anthropic
-import asyncio
-import time
-import json
-from dataclasses import dataclass, field
+          type: 'concept',
+          title: '📄 你刚才遇到的问题，所有从 demo 走向生产的人都遇到过',
+          html: `
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">生产级 Agent 的非功能性需求</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">不是某个特定论文，而是 2023-2024 年整个 AI 工程领域的实践共识</span><br><br>
+              <span style="color:var(--cyan)">你刚才遇到的三种故障，对应了生产系统的三大支柱：可靠性、成本控制、可观测性。</span>
+            </div>
 
-client = anthropic.Anthropic()
-
-@dataclass
-class RunMetrics:
-    start_time: float = field(default_factory=time.time)
-    tool_calls: int = 0
-    input_tokens: int = 0
-    output_tokens: int = 0
-    errors: list = field(default_factory=list)
-
-    @property
-    def cost_usd(self):
-        # claude-opus-4-6 定价（近似）
-        return self.input_tokens / 1e6 * 15 + self.output_tokens / 1e6 * 75
-
-    @property
-    def elapsed_ms(self):
-        return (time.time() - self.start_time) * 1000
-
-async def call_tool_with_timeout(name: str, inputs: dict,
-                                  timeout: float = 5.0) -> dict:
-    """带超时的工具调用"""
-    try:
-        result = await asyncio.wait_for(
-            asyncio.to_thread(execute_tool, name, inputs),
-            timeout=timeout
-        )
-        return {"success": True, "data": result}
-    except asyncio.TimeoutError:
-        return {"success": False, "error": f"工具 {name} 超时（>{timeout}s）"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-async def weather_agent_production(query: str,
-                                    token_budget: int = 2000) -> dict:
-    metrics = RunMetrics()
-    messages = [{"role": "user", "content": query}]
-    MAX_TURNS = 5
-
-    for turn in range(MAX_TURNS):
-        # Token 预算检查
-        if metrics.input_tokens + metrics.output_tokens > token_budget:
-            return {
-                "answer": "抱歉，查询超出预算，请简化问题",
-                "metrics": metrics
-            }
-
-        response = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=512,
-            tools=tools,
-            messages=messages
-        )
-
-        # 更新 token 统计
-        metrics.input_tokens += response.usage.input_tokens
-        metrics.output_tokens += response.usage.output_tokens
-
-        if response.stop_reason == "end_turn":
-            answer = next(
-                (b.text for b in response.content if hasattr(b, "text")), ""
-            )
-            return {"answer": answer, "metrics": metrics}
-
-        # 并发执行所有工具调用
-        tool_blocks = [b for b in response.content if b.type == "tool_use"]
-        metrics.tool_calls += len(tool_blocks)
-
-        tasks = [
-            call_tool_with_timeout(b.name, b.input)
-            for b in tool_blocks
-        ]
-        results = await asyncio.gather(*tasks)
-
-        tool_results = []
-        for block, result in zip(tool_blocks, results):
-            if not result["success"]:
-                metrics.errors.append(result["error"])
-            tool_results.append({
-                "type": "tool_result",
-                "tool_use_id": block.id,
-                "content": json.dumps(
-                    result.get("data", {"error": result.get("error")}),
-                    ensure_ascii=False
-                )
-            })
-
-        messages.append({"role": "assistant", "content": response.content})
-        messages.append({"role": "user", "content": tool_results})
-
-    return {"answer": "达到最大轮次", "metrics": metrics}`,
-          explanation: `
-            <strong>生产级设计要点：</strong><br>
-            • <strong>RunMetrics</strong>：追踪每次调用的 token 消耗、工具调用次数、错误<br>
-            • <strong>asyncio.wait_for</strong>：工具超时保护，防止单个工具卡住整个 Agent<br>
-            • <strong>asyncio.gather</strong>：多个工具并发执行，减少总延迟<br>
-            • <strong>token_budget</strong>：硬性成本上限，防止失控<br>
-            • <strong>MAX_TURNS</strong>：防止无限循环的安全阀
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">Demo → 生产的必经之路</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>Demo 能跑</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">1 个用户<br>网络永远正常<br>API 永远返回正确格式<br>Token 随便用<br>出错了重启就行</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>生产能扛</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">10,000 个并发用户<br>网络会抖、API 会挂<br>返回格式可能变<br>每月 API 费用有上限<br>7×24 不间断运行</span>
+                </div>
+              </div>
+            </div>
           `
         },
         {
           type: 'concept',
-          title: '📊 生产监控指标',
+          title: '🚀 生产 Agent 工程的演进（2023→2026）',
           html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>必须监控的 4 类指标：</strong><br><br>
-
-              <strong>1. 延迟（Latency）</strong><br>
-              • P50/P95/P99 响应时间<br>
-              • 工具调用耗时分布<br>
-              • 目标：P95 &lt; 5s<br><br>
-
-              <strong>2. 成本（Cost）</strong><br>
-              • 每次请求的 token 消耗<br>
-              • 每日/每月 API 费用<br>
-              • 异常高消耗告警<br><br>
-
-              <strong>3. 质量（Quality）</strong><br>
-              • 工具调用成功率<br>
-              • 用户满意度（点赞/踩）<br>
-              • 答案准确率（抽样评估）<br><br>
-
-              <strong>4. 可靠性（Reliability）</strong><br>
-              • 错误率（工具失败、API 超时）<br>
-              • 重试成功率<br>
-              • 降级触发频率
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="padding:12px;background:rgba(168,85,247,.08);border-left:3px solid var(--purple);border-radius:8px">
+                <strong>2023 · 第一波 Agent 部署</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">大家发现 demo 和生产是两回事。并发、重试、超时、成本控制——传统后端工程的问题全部回来了。AI 工程师开始学 SRE。</span>
+              </div>
+              <div style="padding:12px;background:rgba(0,229,255,.08);border-left:3px solid var(--cyan);border-radius:8px">
+                <strong>2024 · 可观测性工具爆发</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">LangSmith、Helicone、Braintrust 等平台出现，专门追踪 LLM 调用的 token、延迟、成本。Agent 监控从"可选"变成"必须"。</span>
+              </div>
+              <div style="padding:12px;background:rgba(16,185,129,.08);border-left:3px solid var(--green);border-radius:8px">
+                <strong>2024 · Guardrails 和输出验证</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Guardrails AI、NeMo Guardrails 等框架出现。在 LLM 输出到达用户之前验证格式、内容、安全性——你刚才设计的"适配层"就是最简单的 Guardrail。</span>
+              </div>
+              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px">
+                <strong>2025 · 成本优化成为核心竞争力</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">模型路由：简单问题用便宜模型，复杂问题用贵模型。缓存：相同问题直接返回缓存答案。Prompt 压缩：减少 token 消耗。API 费用从每月 $10K 降到 $1K。</span>
+              </div>
             </div>
           `
         },
         {
-          type: 'pitfalls',
-          title: '⚠️ 生产环境的深层陷阱',
-          items: [
-            '并发竞争：多用户同时请求同一工具（如天气 API），触发限流——需要请求队列或缓存',
-            '幂等性问题：工具调用失败后重试，可能导致重复操作（如重复发送通知）——工具需要设计为幂等',
-            '成本尖峰：某类查询触发大量工具调用，单次请求消耗数千 token——需要 token 预算 + 告警',
-            '模型漂移：Claude 更新后，工具调用行为可能改变——需要回归测试和金丝雀发布',
-            '级联超时：工具 A 超时 → 工具 B 等待 A 的结果 → 整个链路超时——需要独立超时 + 熔断器'
-          ]
-        },
-        {
           type: 'quiz',
-          q: '生产级 Agent 中，为什么要用 asyncio.gather 并发执行多个工具调用？',
+          q: '从 demo 到生产，最重要的变化是什么？',
           opts: [
-            '因为 asyncio 代码更好看',
-            '多个工具可以同时执行，总延迟 = 最慢工具的时间，而不是所有工具时间之和',
-            '并发可以减少 token 消耗',
-            'Claude API 要求并发调用'
+            '使用更大的模型',
+            '加入非功能性保障：并发隔离、Token 预算、格式适配、监控告警',
+            '增加更多工具',
+            '用更复杂的 prompt'
           ],
           ans: 1,
-          feedback_ok: '🔥 完美！如果 get_location 需要 1s，get_weather 需要 2s，串行需要 3s，并发只需要 2s。在高并发场景下，这个优化非常关键！',
-          feedback_err: '想象一下：如果你要同时查北京和上海的天气，串行需要 2 次等待，并发只需要 1 次！asyncio.gather 就是让多个工具同时跑，总时间取决于最慢的那个。'
+          feedback_ok: '🔥 完美！Demo 的目标是"能跑"，生产的目标是"能扛"。并发隔离防竞争、Token 预算防超支、格式适配防接口错、监控告警防故障黑盒——这些才是 demo 和生产的真正差距。',
+          feedback_err: 'Demo 和生产的差距不是功能，而是非功能性保障：并发安全、成本控制、错误处理、可观测性。功能再强大，扛不住生产流量也是白费。'
         }
       ]
     }

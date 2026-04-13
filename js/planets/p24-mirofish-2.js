@@ -576,276 +576,85 @@ update_agent_memory(1, action, graph_id="武汉大学舆情")
     hell: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔥 地狱模式 - Generative Agents 论文</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，准备好了吗？<br>
-              我们要深入 Agent 人格的核心——<br>
-              <strong>斯坦福 2023 年的革命性论文</strong>！<br><br>
-
-              这篇论文创造了 25 个 AI Agent，<br>
-              让它们在一个虚拟小镇里生活、工作、社交——<br>
-              <strong>它们展现出了惊人的"人性"</strong>！<br><br>
-
-              有 Agent 自发组织了情人节派对，<br>
-              有 Agent 因为失恋而伤心，<br>
-              有 Agent 竞选市长并拉票...<br><br>
-
-              这一切都没有预先编程，完全是涌现出来的！
-            </div>
-          `
+          type: 'dialogue',
+          title: '🔍 100 个 AI 村民，为什么全都像同一个人？',
+          scenario: `<strong>故障场景</strong>：你做了一个 AI 村庄模拟，100 个 NPC 各有名字、年龄、职业。你观察了 10 分钟发现：<br><br>
+• 面包师和铁匠的对话方式完全一样<br>
+• 老人和年轻人的行为模式没有区别<br>
+• 没有任何人记得昨天发生过的事<br><br>
+你问面包师："你昨天和谁聊过天？"<br>
+面包师："我不知道，我没有关于昨天的记忆。"<br><br>
+100 个角色，同一张脸，同一副脑子，同样的遗忘。`,
+          steps: [
+            {
+              question: '100 个 NPC 行为完全一样，因为他们用的是同一个 LLM、同一个 prompt。要让面包师和铁匠有不同"性格"，你需要什么？',
+              opts: [
+                '用 100 个不同的模型',
+                '给每个角色独立的"人格描述"——职业、性格、经历、偏好。这些描述作为 system prompt，影响 LLM 的行为模式',
+                '给每个角色不同的名字就够了',
+                '增加随机性（temperature）'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！人格描述 = 角色的"灵魂"。面包师的 system prompt："你是一个 45 岁的面包师，性格热情，每天早起烤面包，最近在担心面粉涨价。"铁匠的完全不同。这些描述让同一个 LLM 展现出完全不同的行为模式。',
+              aria_wrong: '❌ 100 个不同的模型不现实。temperature 只是增加随机性，不会产生系统性的人格差异。想想：演员是怎么扮演不同角色的？——他们深入了解角色的背景和性格。'
+            },
+            {
+              question: '面包师不记得昨天的事——每次对话都是从零开始。你需要什么机制让 NPC 拥有"记忆"？',
+              opts: [
+                '让 LLM 记住所有对话——不可能',
+                '记忆系统：每次交互后把关键信息存入数据库，下次对话前检索相关记忆注入 prompt——短期记忆（最近的对话）+ 长期记忆（重要事件摘要）',
+                '把所有历史对话都塞进 prompt',
+                '放弃记忆功能'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！记忆 = 存储 + 检索 + 注入。每次交互后提取关键信息（"昨天和铁匠聊了关于面粉涨价的事"），存入数据库。下次对话前检索相关记忆，注入 prompt。LLM 就像"想起了"之前的事。',
+              aria_wrong: '❌ LLM 本身没有记忆能力——每次调用都是全新的。所有历史对话塞进 prompt 会超出 Context Window。你需要一种"外部存储 + 按需检索"的机制。'
+            },
+            {
+              question: '你有了人格 + 记忆，但 NPC 的行为还是"被动的"——你不和它说话，它就什么都不做。真实的村庄里，即使没有人和面包师说话，他也会早起烤面包、和邻居聊天。怎么让 NPC 主动行动？',
+              opts: [
+                '给每个 NPC 写脚本，规定每小时做什么',
+                '给 NPC 一个"内驱力"循环：每隔一段时间，让它回顾记忆、生成计划（"今天我要做什么"）、执行行动——不需要人类触发，NPC 自主运行',
+                '让用户控制所有 NPC 的行动',
+                '增加更多 NPC'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！这就是 Generative Agents 的核心：观察 → 反思 → 规划 → 行动 的自主循环。面包师每天早上"反思"昨天的记忆、"规划"今天的日程、"执行"烤面包和聊天。不需要人类触发，NPC 自主"活着"。',
+              aria_wrong: '❌ 写脚本太死板——100 个 NPC 每天做不同的事，不可能预编程。想想：真实的人是怎么决定今天要做什么的？——回顾过去、想想目标、做出计划。能不能让 AI 也这么做？',
+              reveal_on_correct: `<strong>Generative Agents 的三大核心机制</strong>：<br>1. <strong>人格描述</strong>：system prompt 定义角色的身份、性格、经历<br>2. <strong>记忆系统</strong>：短期记忆 + 长期记忆，存储→检索→注入<br>3. <strong>自主循环</strong>：观察→反思→规划→行动，不需要人类触发<br><br>斯坦福 2023 年的 Generative Agents 论文，让 25 个 AI 角色在小村庄里自主生活了 2 天，涌现出了情人节派对、选举等未经设计的行为。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你推导出了 Generative Agents 的核心架构！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">人格 + 记忆 + 自主循环 = 有灵魂的 AI 角色。<br>不再是"你问它答"的工具，而是自主"活着"的虚拟人。</div>`
         },
         {
           type: 'concept',
-          title: '📄 论文核心：记忆、规划、反思',
+          title: '📄 你刚才推导出的，2023 年斯坦福把它写成了论文',
           html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>论文信息：</strong><br>
-              • 标题：Generative Agents: Interactive Simulacra of Human Behavior<br>
-              • 作者：Stanford University（2023）<br>
-              • 核心贡献：提出 Agent 的三层架构——记忆、规划、反思<br><br>
-
-              <strong>传统 Agent 的问题：</strong><br>
-              • 只有短期记忆（Context Window）<br>
-              • 没有长期规划能力<br>
-              • 不会从经验中学习<br>
-              • 行为缺少连贯性<br><br>
-
-              <strong>Generative Agents 的创新：</strong><br>
-              • <strong>记忆流（Memory Stream）</strong>：记录所有经历<br>
-              • <strong>规划（Planning）</strong>：制定长期计划<br>
-              • <strong>反思（Reflection）</strong>：从经历中提炼洞察<br>
-              • <strong>检索（Retrieval）</strong>：根据相关性、重要性、时效性检索记忆
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">Generative Agents: Interactive Simulacra of Human Behavior</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">作者：Joon Sung Park 等（Stanford）· UIST 2023</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的三大机制——人格、记忆、自主循环——正是这篇论文的核心架构！</span>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,.1);border-radius:8px;font-size:.9rem">
+              💡 <strong>最惊人的发现</strong>：25 个 AI 角色自主生活 2 天后，自发组织了情人节派对——没有人设计这个事件，是 NPC 自己"想出来的"。其中一个 NPC 主动邀请了其他人，另一个负责布置场地。
             </div>
           `
-        },
-        {
-          type: 'concept',
-          title: '🧠 三层架构详解',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>1. 记忆流（Memory Stream）</strong><br>
-              • 记录 Agent 的所有观察和行动<br>
-              • 每条记忆有：内容、时间戳、重要性评分<br>
-              • 示例："张三在咖啡馆遇到了李四，他们讨论了 AI 伦理问题。"<br><br>
-
-              <strong>2. 规划（Planning）</strong><br>
-              • Agent 会制定一天的计划<br>
-              • 计划会根据新情况动态调整<br>
-              • 示例：早上 8 点起床 → 9 点去实验室 → 12 点吃午饭 → ...<br><br>
-
-              <strong>3. 反思（Reflection）</strong><br>
-              • 定期（如每 100 条记忆）进行反思<br>
-              • 从具体经历中提炼抽象洞察<br>
-              • 示例：从"多次和李四讨论 AI"反思出"李四是我的学术伙伴"<br><br>
-
-              <strong>4. 检索（Retrieval）</strong><br>
-              • 根据当前情境检索相关记忆<br>
-              • 评分 = 相关性 × 重要性 × 时效性<br>
-              • 只检索最相关的 Top-K 条记忆
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '💻 Generative Agents 的记忆检索算法',
-          code: `# 论文中的记忆检索算法
-
-def retrieve_memories(query, memory_stream, k=10):
-    """
-    检索最相关的 k 条记忆
-
-    Args:
-        query: 当前情境（如"张三遇到了李四"）
-        memory_stream: 所有记忆
-        k: 返回 Top-K
-
-    Returns:
-        最相关的 k 条记忆
-    """
-    scored_memories = []
-
-    for memory in memory_stream:
-        # 1. 相关性（Relevance）：语义相似度
-        relevance = cosine_similarity(
-            embed(query),
-            embed(memory.content)
-        )
-
-        # 2. 重要性（Importance）：记忆创建时的评分
-        importance = memory.importance_score  # 1-10
-
-        # 3. 时效性（Recency）：时间衰减
-        hours_ago = (now() - memory.timestamp).hours
-        recency = 0.99 ** hours_ago  # 指数衰减
-
-        # 综合评分
-        score = relevance * importance * recency
-
-        scored_memories.append((memory, score))
-
-    # 返回 Top-K
-    scored_memories.sort(key=lambda x: x[1], reverse=True)
-    return [m for m, s in scored_memories[:k]]
-
-
-# 示例：张三要决定是否参加派对
-query = "张三收到了派对邀请，他应该去吗？"
-
-relevant_memories = retrieve_memories(query, zhang_san_memories)
-
-# 可能检索到：
-# - "张三是内向的人，不喜欢热闹的场合"（高相关性、高重要性）
-# - "上次派对张三感觉很不自在"（高相关性、中等时效性）
-# - "李四也会参加这个派对"（中等相关性、高时效性）
-
-# 基于这些记忆，LLM 决定：张三可能不会去`,
-          explanation: `
-            <strong>检索算法的精妙之处：</strong><br>
-            • <strong>相关性</strong>：确保检索到的记忆和当前情境有关<br>
-            • <strong>重要性</strong>：重要的记忆（如"我是内向的人"）权重更高<br>
-            • <strong>时效性</strong>：最近的记忆更重要（昨天的经历 > 一年前的）<br>
-            • <strong>三者相乘</strong>：平衡长期特质和短期经历
-          `
-        },
-        {
-          type: 'code',
-          title: '💻 反思机制实现',
-          code: `# 论文中的反思机制
-
-def reflect(memory_stream, threshold=100):
-    """
-    当记忆达到阈值时，进行反思
-
-    Args:
-        memory_stream: 所有记忆
-        threshold: 触发反思的记忆数量
-
-    Returns:
-        反思得出的高层洞察
-    """
-    if len(memory_stream) < threshold:
-        return []
-
-    # 获取最近的记忆
-    recent_memories = memory_stream[-threshold:]
-
-    # 用 LLM 提炼洞察
-    prompt = f"""基于以下记忆，提炼出 3-5 条高层洞察。
-
-**记忆：**
-{format_memories(recent_memories)}
-
-**要求：**
-1. 洞察应该是抽象的、概括性的
-2. 从具体事件中提炼出模式和规律
-3. 每条洞察用一句话表达
-
-**示例：**
-- 从"多次和李四讨论 AI"提炼出"李四是我的学术伙伴"
-- 从"每次派对都感觉不自在"提炼出"我不适合大型社交场合"
-
-**输出格式：**
-1. [洞察 1]
-2. [洞察 2]
-...
-"""
-
-    response = llm.generate(prompt)
-    insights = parse_insights(response.text)
-
-    # 将洞察作为新的记忆添加到记忆流
-    for insight in insights:
-        memory_stream.append(Memory(
-            content=insight,
-            timestamp=now(),
-            importance_score=8,  # 反思得出的洞察很重要
-            type="reflection"
-        ))
-
-    return insights
-
-
-# 示例：张三的反思
-zhang_san_memories = [
-    "张三和李四讨论了 AI 伦理",
-    "张三和李四一起写论文",
-    "张三邀请李四参加研讨会",
-    "张三和李四在咖啡馆聊天",
-    # ... 100 条记忆
-]
-
-insights = reflect(zhang_san_memories)
-
-# 可能得出的洞察：
-# 1. "李四是我最重要的学术合作伙伴"
-# 2. "我和李四在 AI 伦理方面有共同兴趣"
-# 3. "我倾向于和李四进行深度讨论而不是闲聊"`,
-          explanation: `
-            <strong>反思的作用：</strong><br>
-            • <strong>压缩记忆</strong>：100 条具体记忆 → 3 条抽象洞察<br>
-            • <strong>提升效率</strong>：下次检索时，洞察的权重更高<br>
-            • <strong>形成人格</strong>：长期的反思塑造了 Agent 的"世界观"<br>
-            • <strong>避免遗忘</strong>：重要的模式被提炼成洞察，不会被遗忘
-          `
-        },
-        {
-          type: 'concept',
-          title: '🏗️ MiroFish vs Generative Agents',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>MiroFish 在论文基础上的简化和优化：</strong><br><br>
-
-              <strong>1. 记忆系统</strong><br>
-              • 论文：自己实现记忆流、检索、反思<br>
-              • MiroFish：用 Zep Cloud 的 GraphRAG，自动处理检索和去重<br>
-              • 优势：开发成本低，性能更好<br><br>
-
-              <strong>2. 规划系统</strong><br>
-              • 论文：Agent 每天制定详细计划<br>
-              • MiroFish：用活动配置（activity_level、posts_per_hour）简化<br>
-              • 优势：更适合社交媒体场景（不需要"8 点起床"这种细节）<br><br>
-
-              <strong>3. 反思机制</strong><br>
-              • 论文：每 100 条记忆触发反思<br>
-              • MiroFish：暂未实现（未来可以加入）<br>
-              • 原因：社交媒体模拟周期短（几十轮），反思的收益不大<br><br>
-
-              <strong>4. 人格一致性</strong><br>
-              • 论文：依赖记忆检索保证一致性<br>
-              • MiroFish：用详细的 persona + 定期校准<br>
-              • 优势：更直接，避免"人设漂移"
-            </div>
-          `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ 生产级人格系统的深层陷阱',
-          items: [
-            '记忆检索的冷启动问题：新 Agent 没有记忆，行为不稳定——需要用 persona 作为"种子记忆"',
-            '反思的计算成本：每 100 条记忆调用一次 LLM，成本很高——需要异步处理或降低频率',
-            '人格漂移（Personality Drift）：长时间模拟后，Agent 的行为偏离原始人设——需要定期用 persona 重新校准',
-            '记忆冲突：新记忆和旧记忆矛盾（"我讨厌派对" vs "我参加了派对"）——需要冲突检测和解决机制',
-            '社交网络效应：Agent 的行为受其他 Agent 影响，可能导致"群体极化"——需要监控和干预',
-            '评估困难：如何量化"人格一致性"？没有标准答案——需要人工评估 + 自动化指标'
-          ]
         },
         {
           type: 'quiz',
-          q: 'Generative Agents 论文的核心创新是什么？',
+          q: 'Generative Agents 最核心的创新是什么？',
           opts: [
-            '用 LLM 生成 Agent',
-            '提出记忆流 + 规划 + 反思的三层架构，让 Agent 有长期记忆和学习能力',
-            '让 Agent 能在虚拟世界生活',
-            '用向量数据库存储记忆'
-          ],
-          ans: 1,
-          feedback_ok: '🔥 完美！三层架构是论文的灵魂。记忆流让 Agent 记住经历，规划让 Agent 有目标，反思让 Agent 从经验中学习——这三者结合，Agent 才真正"活"了起来！',
-          feedback_err: '论文的核心是"记忆 + 规划 + 反思"。想象一个人：记忆是过去，规划是未来，反思是从过去学习以指导未来。三者缺一不可！'
+                '使用了更大的 LLM',
+                '让 AI 角色拥有人格、记忆和自主行动能力，无需人类触发就能自主运行',
+                '发明了向量数据库',
+                '让 NPC 可以互相打架'
+              ],
+              ans: 1,
+              feedback_ok: '🔥 正确！人格 + 记忆 + 自主循环 = AI 不再是"你问它答"的工具，而是自主"活着"的虚拟人。Generative Agents 打开了 AI 社会模拟的大门。',
+              feedback_err: '核心创新是让 AI 角色自主运行——有人格（决定行为风格）、有记忆（决定知道什么）、有内驱力循环（决定做什么）。不需要人类触发。'
         }
       ]
     }
   }
 });
-

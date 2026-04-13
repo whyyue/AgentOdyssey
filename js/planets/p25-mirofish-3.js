@@ -613,336 +613,87 @@ at line 3: post_id = get_next_post_id()`,
     hell: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔥 地狱模式 - OASIS 论文</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，准备好了吗？<br>
-              我们要深入仿真引擎的核心——<br>
-              <strong>CAMEL-AI 2024 年的 OASIS 论文</strong>！<br><br>
-
-              OASIS 是 MiroFish 的仿真引擎基础，<br>
-              它提出了一个开放的社交媒体仿真平台——<br>
-              <strong>让 AI Agent 能在虚拟社交网络中自由互动</strong>！<br><br>
-
-              论文的核心创新：<br>
-              • 双平台架构（Twitter + Reddit）<br>
-              • 可扩展的动作空间<br>
-              • 真实的社交网络拓扑<br>
-              • 大规模并发支持
-            </div>
-          `
-        },
-        {
-          type: 'concept',
-          title: '📄 论文核心：开放社交仿真',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>论文信息：</strong><br>
-              • 标题：OASIS: Open Agent Social Interaction Simulations<br>
-              • 作者：CAMEL-AI Team（2024）<br>
-              • 核心贡献：提出开放的社交媒体仿真框架<br><br>
-
-              <strong>传统仿真的问题：</strong><br>
-              • 封闭环境，不支持自定义<br>
-              • 单一平台，无法对比<br>
-              • 动作空间有限<br>
-              • 难以扩展到大规模<br><br>
-
-              <strong>OASIS 的创新：</strong><br>
-              • <strong>双平台</strong>：Twitter（快速传播）+ Reddit（深度讨论）<br>
-              • <strong>开放动作</strong>：支持自定义新动作<br>
-              • <strong>真实拓扑</strong>：模拟真实的社交网络结构<br>
-              • <strong>可扩展</strong>：支持数千个 Agent 并发
-            </div>
-          `
-        },
-        {
-          type: 'concept',
-          title: '🏗️ OASIS 的架构设计',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>三层架构：</strong><br><br>
-
-              <strong>1. 平台层（Platform Layer）</strong><br>
-              • TwitterEnv：模拟 Twitter 的行为<br>
-              • RedditEnv：模拟 Reddit 的行为<br>
-              • 每个平台有独立的状态和规则<br><br>
-
-              <strong>2. Agent 层（Agent Layer）</strong><br>
-              • 每个 Agent 有独立的 Profile<br>
-              • Agent 可以在多个平台活动<br>
-              • Agent 之间可以互相关注、互动<br><br>
-
-              <strong>3. 调度层（Scheduler Layer）</strong><br>
-              • 控制 Agent 的行动顺序<br>
-              • 处理并发冲突<br>
-              • 记录所有活动日志
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '💻 OASIS 的动作空间',
-          code: `# OASIS 支持的所有动作
-
-# Twitter 平台动作
-class TwitterAction(Enum):
-    CREATE_POST = "create_post"      # 发推文
-    LIKE_POST = "like_post"          # 点赞
-    REPOST = "repost"                # 转发
-    QUOTE_POST = "quote_post"        # 引用转发
-    FOLLOW = "follow"                # 关注
-    UNFOLLOW = "unfollow"            # 取消关注
-    MUTE = "mute"                    # 屏蔽
-    REFRESH = "refresh"              # 刷新时间线
-    DO_NOTHING = "do_nothing"        # 不行动
-
-
-# Reddit 平台动作
-class RedditAction(Enum):
-    CREATE_POST = "create_post"      # 发帖
-    CREATE_COMMENT = "create_comment" # 评论
-    LIKE_POST = "like_post"          # 点赞帖子
-    DISLIKE_POST = "dislike_post"    # 踩帖子
-    LIKE_COMMENT = "like_comment"    # 点赞评论
-    DISLIKE_COMMENT = "dislike_comment" # 踩评论
-    SEARCH_POSTS = "search_posts"    # 搜索帖子
-    SEARCH_USER = "search_user"      # 搜索用户
-    TREND = "trend"                  # 查看热门
-    FOLLOW = "follow"                # 关注
-    MUTE = "mute"                    # 屏蔽
-    REFRESH = "refresh"              # 刷新
-    DO_NOTHING = "do_nothing"        # 不行动
-
-
-# Agent 决策流程
-def agent_decide_action(agent, platform):
-    """
-    Agent 根据当前状态决定下一步动作
-
-    Args:
-        agent: Agent 对象
-        platform: 平台对象（Twitter 或 Reddit）
-
-    Returns:
-        选择的动作
-    """
-    # 1. 获取当前平台状态
-    timeline = platform.get_timeline(agent.id)
-    trending = platform.get_trending()
-
-    # 2. 检索 Agent 的记忆
-    relevant_memories = agent.memory.retrieve(
-        query="我最近在关注什么话题？"
-    )
-
-    # 3. 构建 Prompt
-    prompt = f"""你是 {agent.name}。
-
-**你的人设：**
-{agent.persona}
-
-**当前平台：**{platform.name}
-
-**你的时间线：**
-{format_timeline(timeline)}
-
-**热门话题：**
-{format_trending(trending)}
-
-**你的记忆：**
-{format_memories(relevant_memories)}
-
-**可选动作：**
-{list_available_actions(platform)}
-
-**请决定：**
-1. 你要做什么动作？
-2. 如果是发帖/评论，内容是什么？
-
-输出 JSON 格式：
-{{"action": "动作名称", "params": {{...}}}}
-"""
-
-    # 4. LLM 决策
-    response = llm.generate(prompt)
-    action = parse_action(response.text)
-
-    return action`,
-          explanation: `
-            <strong>动作空间的设计哲学：</strong><br>
-            • <strong>真实性</strong>：动作来自真实社交媒体平台<br>
-            • <strong>完整性</strong>：覆盖所有主要互动方式<br>
-            • <strong>可扩展</strong>：可以轻松添加新动作<br>
-            • <strong>DO_NOTHING</strong>：允许 Agent 选择不行动（很重要！）
-          `
-        },
-        {
-          type: 'concept',
-          title: '⚡ 大规模并发的技术挑战',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>挑战 1：状态同步</strong><br>
-              • 1000 个 Agent 同时读写状态<br>
-              • 需要保证数据一致性<br>
-              • 解决方案：读写锁、事务、乐观锁<br><br>
-
-              <strong>挑战 2：LLM 调用瓶颈</strong><br>
-              • 每个 Agent 每轮调用 1 次 LLM<br>
-              • 1000 个 Agent = 1000 次调用<br>
-              • 解决方案：批量调用、缓存、异步处理<br><br>
-
-              <strong>挑战 3：内存占用</strong><br>
-              • 每个 Agent 的记忆越来越多<br>
-              • 1000 个 Agent × 1000 条记忆 = 100 万条<br>
-              • 解决方案：分页加载、定期清理、压缩存储<br><br>
-
-              <strong>挑战 4：日志爆炸</strong><br>
-              • 每个动作都要记录日志<br>
-              • 1000 个 Agent × 100 轮 × 5 动作 = 50 万条日志<br>
-              • 解决方案：异步写入、批量写入、日志轮转
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '💻 并发控制实现',
-          code: `import threading
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-
-class ConcurrentSimulation:
-    def __init__(self, agents, platforms):
-        self.agents = agents
-        self.platforms = platforms
-        self.lock = threading.Lock()
-        self.executor = ThreadPoolExecutor(max_workers=10)
-
-    async def run_round_concurrent(self, round_num):
-        """
-        并发执行一轮模拟
-
-        策略：
-        1. 所有 Agent 并发决策（读操作）
-        2. 串行执行动作（写操作，避免冲突）
-        """
-        # Phase 1: 并发决策（只读，无冲突）
-        decision_tasks = []
-        for agent in self.agents:
-            task = asyncio.create_task(
-                self.agent_decide_async(agent, round_num)
-            )
-            decision_tasks.append(task)
-
-        # 等待所有决策完成
-        decisions = await asyncio.gather(*decision_tasks)
-
-        # Phase 2: 串行执行（写操作，需要加锁）
-        for agent, action in zip(self.agents, decisions):
-            if action is None:
-                continue
-
-            # 执行动作（加锁保护）
-            with self.lock:
-                result = self.execute_action(agent, action)
-                self.log_action(agent, action, result)
-
-    async def agent_decide_async(self, agent, round_num):
-        """
-        异步决策（可以并发）
-
-        使用线程池执行 LLM 调用，避免阻塞
-        """
-        loop = asyncio.get_event_loop()
-        decision = await loop.run_in_executor(
-            self.executor,
-            agent.decide_action,
-            self.platforms[0]  # 简化：只用一个平台
-        )
-        return decision
-
-    def execute_action(self, agent, action):
-        """
-        执行动作（需要加锁）
-
-        这里会修改共享状态，必须串行
-        """
-        platform = self.platforms[0]
-
-        if action.type == "CREATE_POST":
-            # 生成唯一 ID（临界区）
-            post_id = self.get_next_post_id()
-            post = {
-                "id": post_id,
-                "author": agent.id,
-                "content": action.content,
-                "timestamp": time.time()
+          type: 'dialogue',
+          title: '🔍 1000 个 Agent 同时运行，服务器直接宕机了',
+          scenario: `<strong>故障场景</strong>：你的 AI 村庄从 25 个 NPC 扩展到了 1000 个。<br>
+你按下"启动模拟"按钮，30 秒后服务器 OOM（内存溢出）了。<br><br>
+原因分析：<br>
+• 每个Agent 每轮需要 1 次 LLM 调用（规划）+ 1 次检索（记忆）<br>
+• 1000 个 Agent = 2000 次调用/轮<br>
+• 每次 LLM 调用耗时 2 秒<br>
+• 串行执行：2000 × 2s = 4000 秒 ≈ 67 分钟/轮<br><br>
+67 分钟才推进一轮模拟？用户等不了。<br>
+你改成并发执行，API 限流了。1000 个并发请求直接被拒绝。`,
+          steps: [
+            {
+              question: '1000 个 Agent 串行太慢，并发被限流。你需要什么策略来平衡"速度"和"API 限制"？',
+              opts: [
+                '只用 10 个 Agent',
+                '分批调度：把 1000 个 Agent 分成若干批次，每批 50 个并发执行，批次间有间隔。用令牌桶算法控制 API 调用速率',
+                '买更多 API 额度',
+                '让用户等待 67 分钟'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！分批调度 + 速率控制 = 在 API 限制内最大化吞吐量。每批 50 个并发，20 批串行，总时间约 40 秒/轮（而不是 67 分钟）。令牌桶确保不超过 API 速率限制。',
+              aria_wrong: '❌ 减少到 10 个 Agent 不满足需求。买更多额度不能解决并发限制。想想：既然不能 1000 个同时跑，能不能分批跑？每批多少个合适？'
+            },
+            {
+              question: '你优化了调度，但发现同一时刻 50 个 NPC 都在"睡觉"——浪费了 LLM 调用。怎么避免对"正在睡觉"的 NPC 做无意义的规划调用？',
+              opts: [
+                '所有 NPC 都不睡觉',
+                '事件驱动：只有当 Agent 有"值得注意的事件"（被说话、环境变化、计划到了执行时间）时才触发 LLM 调用。睡觉的 NPC 不调用 LLM',
+                '随机唤醒 NPC',
+                '减少模拟时间步长'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！事件驱动 vs 轮询：传统方式每轮给所有 NPC 调用 LLM（即使它在睡觉），事件驱动只在"有事情发生"时触发。1000 个 NPC 中可能只有 200 个在活动——LLM 调用量直接减少 80%。',
+              aria_wrong: '❌ 不让 NPC 睡觉不现实。想想：一个正在睡觉的 NPC，你每 2 秒调一次 LLM 问"你要做什么？"，它每次都说"继续睡觉"。这是不是在浪费调用？能不能只在"有事件"时才触发？'
+            },
+            {
+              question: '1000 个 Agent 运行一天后，你发现费用是 $500。其中 60% 的费用来自"低价值调用"——NPC 和 NPC 之间的闲聊（"今天天气不错"）。怎么优化？',
+              opts: [
+                '禁止 NPC 闲聊',
+                '分级 LLM 调用：闲聊用小模型（快+便宜），重要决策用大模型（贵但准）。根据事件的重要性动态选择模型',
+                '减少 NPC 数量',
+                '提高 API 预算'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！模型路由 = 根据任务重要性选择模型。闲聊用 Haiku（便宜 100 倍），重要决策用 Opus。OASIS 论文证明：分级调用可以在保持质量的同时降低 70% 的成本。',
+              aria_wrong: '❌ 禁止闲聊会让村庄失去真实感。减少 NPC 数量不解决根本问题。想想：闲聊真的需要用最贵的模型吗？"今天天气不错"这种对话，一个便宜的小模型能不能处理？',
+              reveal_on_correct: `<strong>大规模仿真引擎的三个关键优化</strong>：<br>1. <strong>分批调度</strong>：控制并发数，不超过 API 限制<br>2. <strong>事件驱动</strong>：只在"有事件"时触发 LLM，减少 80% 无意义调用<br>3. <strong>模型路由</strong>：闲聊用便宜模型，决策用贵模型，降低 70% 成本<br><br>没有这三层优化，1000 个 Agent 的仿真系统根本无法运行。`
             }
-            platform.posts.append(post)
-            return {"success": True, "post_id": post_id}
-
-        elif action.type == "LIKE_POST":
-            post = platform.get_post(action.post_id)
-            if post:
-                post["likes"].append(agent.id)
-                return {"success": True}
-            return {"success": False, "error": "Post not found"}
-
-        return {"success": False, "error": "Unknown action"}
-
-    def get_next_post_id(self):
-        """
-        生成下一个帖子 ID（线程安全）
-
-        使用原子操作保证唯一性
-        """
-        with self.lock:
-            self.post_id_counter += 1
-            return self.post_id_counter
-
-
-# 使用示例
-sim = ConcurrentSimulation(agents, platforms)
-
-# 运行 100 轮
-for round_num in range(100):
-    asyncio.run(sim.run_round_concurrent(round_num))`,
-          explanation: `
-            <strong>并发优化的关键：</strong><br>
-            • <strong>读写分离</strong>：决策（读）并发，执行（写）串行<br>
-            • <strong>异步 LLM</strong>：用线程池避免阻塞<br>
-            • <strong>锁保护</strong>：临界区用锁保护，避免冲突<br>
-            • <strong>性能提升</strong>：决策并发可以提升 10 倍速度
-          `
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你设计出了大规模仿真引擎的核心调度策略！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">分批调度 + 事件驱动 + 模型路由 = 让 1000 个 Agent 同时运行。<br>不只是技术问题，更是成本和效率的工程权衡。</div>`
         },
         {
-          type: 'pitfalls',
-          title: '⚠️ 大规模仿真的深层陷阱',
-          items: [
-            '死锁问题：Agent A 等待 Agent B，Agent B 等待 Agent A——需要避免循环等待，使用超时机制',
-            '雪崩效应：一个热门帖子导致所有 Agent 都去评论，系统崩溃——需要限流和负载均衡',
-            '记忆泄漏：Agent 的记忆只增不减，最终耗尽内存——需要 LRU 缓存或定期清理',
-            '时间漂移：长时间运行后，模拟时间和真实时间不同步——需要时间校准机制',
-            '幸存者偏差：只有活跃的 Agent 被记录，沉默的大多数被忽略——需要记录"不行动"',
-            '评估困难：如何判断仿真是否"真实"？没有标准答案——需要多维度指标（活跃度分布、互动模式、舆论演化）'
-          ]
+          type: 'concept',
+          title: '📄 你刚才设计的，2024 年有团队把它做成了产品',
+          html: `
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">OASIS: A Data-Augmented Social Simulation Framework</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">大规模社会仿真引擎，支持数千个 Agent 同时运行</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的三个优化——分批调度、事件驱动、模型路由——正是大规模仿真的核心技术！</span>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,.1);border-radius:8px;font-size:.9rem">
+              💡 从 Generative Agents（25 个 NPC）到 OASIS（数千个 NPC），核心突破不是模型更强了，而是<strong>调度和优化</strong>——让有限的计算资源服务更多的 Agent。
+            </div>
+          `
         },
         {
           type: 'quiz',
-          q: 'OASIS 论文的核心创新是什么？',
+          q: '大规模 Agent 仿真（1000+ Agent）最大的工程挑战是什么？',
           opts: [
-            '用 LLM 驱动 Agent',
-            '提出开放的双平台社交仿真框架，支持自定义动作和大规模并发',
-            '实现了 Twitter 和 Reddit',
-            '用向量数据库存储记忆'
+            '让每个 Agent 更聪明',
+            '调度优化：在 API 速率限制和预算限制下，最大化仿真吞吐量和质量',
+            '让 Agent 看起来更像人类',
+            '增加更多功能'
           ],
           ans: 1,
-          feedback_ok: '🔥 完美！OASIS 的核心是"开放"和"可扩展"。不同于封闭的仿真环境，OASIS 允许研究者自定义平台、动作、Agent，并支持大规模并发——这是它成为 MiroFish 基础的原因！',
-          feedback_err: 'OASIS 的核心价值是提供了一个开放的框架。想象一个"社交媒体模拟器"——你可以自定义规则、添加新平台、扩展到数千 Agent。这种灵活性是传统仿真做不到的！'
+          feedback_ok: '🔥 正确！25 个 Agent 靠蛮力就行，1000 个 Agent 靠调度优化。分批执行、事件驱动、模型路由——每一层优化都让系统更高效。这就是工程思维。',
+          feedback_err: '大规模仿真的核心挑战不是单个 Agent 的能力，而是系统级的调度和优化。如何在有限资源下让更多 Agent 更好地运行，才是真正的工程问题。'
         }
       ]
     }
   }
 });
-

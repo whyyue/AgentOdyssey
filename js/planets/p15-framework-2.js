@@ -209,164 +209,110 @@ print(result)`,
     hell: {
       sections: [
         {
-          type: 'story',
+          type: 'dialogue',
+          title: '🔍 多 Agent 团队为什么会集体犯错？',
+          scenario: `<strong>故障场景</strong>：你用 AutoGen 搭了一个三 Agent 系统：<br>
+• <strong>工程师 Agent</strong>：写代码<br>
+• <strong>审核员 Agent</strong>：审查代码<br>
+• <strong>用户 Agent</strong>：最终验收<br><br>
+任务是写一个 Python 函数计算第 n 个斐波那契数。十轮对话后，三个 Agent 都同意了方案：<br>
+<code>def fib(n): return n if n &lt;= 1 else fib(n-1) + fib(n-2)</code><br><br>
+但这个函数对 <code>fib(40)</code> 需要约 30 亿次递归调用，实际运行会卡死。审核员 Agent 为什么没有发现这个问题？`,
+          steps: [
+            {
+              question: '工程师写完代码，审核员说"代码逻辑正确，可以通过"。这个审核员为什么没有指出性能问题？',
+              opts: [
+                '审核员模型的版本太旧',
+                '审核员的 system_message 没有明确要求批判，LLM 天然倾向于认同对方——这是奉承行为（Sycophancy）',
+                '审核员没有工具可以运行代码',
+                '斐波那契函数本来就没有问题'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！这叫 Sycophancy（奉承行为）。LLM 天然倾向于认同对话中的另一方，在多 Agent 系统中这个问题被放大——两个 AI 互相认同，形成"回音室"。',
+              aria_wrong: '❌ 想想：审核员自己也是 LLM，它也有 LLM 天然的倾向。它的"性格"由 system_message 决定。如果 system_message 没有明确要求批判，它默认会做什么？'
+            },
+            {
+              question: '要修复这个问题，审核员 Agent 的 system_message 应该怎么写？',
+              opts: [
+                '你是一个友好的代码助手，帮助工程师改进代码',
+                '你的职责是找出代码中的问题。如果代码有问题，明确指出。只有代码完全正确时，才说"审核通过"',
+                '你是一个有 10 年经验的高级工程师',
+                '你需要审查代码并给出评分（满分 10 分）'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！关键词是"找出问题"和"明确指出"。这明确对抗了 LLM 的奉承倾向。如果不写清楚，LLM 默认会倾向于同意。',
+              aria_wrong: '❌ 奉承行为的根源是"没有明确要求批判"。要打破它，需要在 system_message 里明确告诉 Agent："你的职责是找问题，不是给赞美"。',
+              reveal_on_correct: `<strong>AutoGen 的核心设计洞察</strong>：<br>角色定义决定行为。批评者 Agent 的 system_message 必须明确：<br><code>"你的职责是找出代码中的问题，而不是赞美。只有代码完全正确时，才说'审核通过'。"</code><br><br>这不是可选项，是对抗奉承行为的必要设计。`
+            },
+            {
+              question: '三个 Agent 的系统，每轮对话 3 次 LLM 调用，运行 10 轮。和单 Agent（10 次调用）相比，成本是多少倍？',
+              opts: [
+                '3 倍',
+                '10 倍',
+                '30 倍',
+                '100 倍'
+              ],
+              correct: 2,
+              aria_correct: '✅ 对！3 个 Agent × 10 轮 = 30 次调用，是单 Agent 的 30 倍。而且每次调用还要处理越来越长的对话历史，实际成本更高。',
+              aria_wrong: '❌ 算一下：每轮 3 个 Agent 各调用一次，运行 10 轮，一共 3 × 10 = 30 次调用。',
+              reveal_on_correct: `<strong>多 Agent 的成本定律</strong>：<br>成本 ≈ Agent 数量 × 轮次 × 单次成本（还要加上不断增长的上下文长度）。<br><br>多 Agent 值得这个成本吗？只有当问题本身需要多角色协作——比如代码需要写作者和批评者的对立视角。否则单 Agent 更经济。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你理解了多 Agent 系统的核心挑战！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">奉承行为 + 成本爆炸，是多 Agent 系统失败的两大根源。<br>解法：明确的批评者角色 + 只在真正需要多角色时才用多 Agent。</div>`
+        },
+        {
+          type: 'concept',
+          title: '📄 你刚才想到的，2023 年微软把它做成了框架',
           html: `
-            <div class="speaker">🔥 地狱模式 - 框架背后的设计哲学</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，AutoGen 和 CrewAI 都很好用，<br>
-              但它们背后有一个共同的问题：<br><br>
-              <strong>多 Agent 系统的"奉承问题"（Sycophancy）</strong><br><br>
-              当 AI 用户 Agent 提出一个方案，AI 助手 Agent 会倾向于同意——<br>
-              即使方案有明显问题！<br><br>
-              这就是为什么我们的帝国篇需要"门下省"（审核 Agent）！
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">作者：Qingyun Wu 等（微软研究院）· 2023</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的核心问题——"多 Agent 如果没有批评者就会互相认同"——正是这篇论文的主要动机！</span>
+            </div>
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">AutoGen 的核心设计</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>对话协议</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">消息路由：auto / round_robin / custom<br>终止条件：关键词 / 最大轮次<br>Human-in-the-loop 内置支持</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>角色系统</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">每个 Agent 独立 system_message<br>批评者 = 对抗奉承的制度设计<br>代码执行与 LLM 解耦</span>
+                </div>
+              </div>
             </div>
           `
         },
         {
           type: 'concept',
-          title: '🔬 AutoGen 的对话协议深度解析',
+          title: '🚀 多 Agent 框架的演进（2023→2026）',
           html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>AutoGen 的核心：GroupChat 协议</strong><br><br>
-
-              <strong>消息路由策略：</strong><br>
-              • <code>auto</code>：LLM 决定下一个发言的 Agent<br>
-              • <code>round_robin</code>：轮流发言<br>
-              • <code>random</code>：随机选择<br>
-              • <code>custom</code>：自定义路由函数<br><br>
-
-              <strong>终止条件：</strong><br>
-              • 关键词检测（如"TERMINATE"）<br>
-              • 最大轮次限制<br>
-              • 自定义函数判断<br><br>
-
-              <strong>人类介入（Human-in-the-loop）：</strong><br>
-              • <code>human_input_mode="ALWAYS"</code>：每轮都询问人类<br>
-              • <code>human_input_mode="TERMINATE"</code>：只在终止时询问<br>
-              • <code>human_input_mode="NEVER"</code>：全自动
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="padding:12px;background:rgba(168,85,247,.08);border-left:3px solid var(--purple);border-radius:8px">
+                <strong>2023 · AutoGen（微软）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">多 Agent 对话框架，内置 Human-in-the-loop，代码执行能力强。奉承问题催生了批评者 Agent 模式。</span>
+              </div>
+              <div style="padding:12px;background:rgba(0,229,255,.08);border-left:3px solid var(--cyan);border-radius:8px">
+                <strong>2023 · MetaGPT</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">用软件公司角色（PM、架构师、工程师）完成端到端项目生成。把奉承问题转化为流程约束。</span>
+              </div>
+              <div style="padding:12px;background:rgba(16,185,129,.08);border-left:3px solid var(--green);border-radius:8px">
+                <strong>2023 · CrewAI</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">用"船员"隐喻简化 API，角色分工最清晰，适合快速原型。但复杂流程控制弱���</span>
+              </div>
+              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px">
+                <strong>2024 · LangGraph</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">基于图结构的工作流编排，Checkpointing 支持最好，最灵活但学习曲线最陡。</span>
+              </div>
+              <div style="padding:12px;background:rgba(239,68,68,.08);border-left:3px solid var(--red);border-radius:8px">
+                <strong>2024 · Anthropic 官方建议</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">对大多数场景，直接用 Claude API + 简单 Python 比引入框架更清晰、更可控。框架适合真正复杂的编排需求。</span>
+              </div>
             </div>
           `
-        },
-        {
-          type: 'code',
-          title: '💻 AutoGen 高级用法：带审核的多 Agent 系统',
-          code: `import autogen
-
-config_list = [{"model": "claude-opus-4-6", "api_key": "..."}]
-llm_config = {"config_list": config_list, "temperature": 0}
-
-# ===== 定义 Agent =====
-
-user_proxy = autogen.UserProxyAgent(
-    name="用户",
-    human_input_mode="TERMINATE",  # 只在结束时询问人类
-    max_consecutive_auto_reply=10,
-    code_execution_config={"work_dir": "workspace", "use_docker": False},
-    is_termination_msg=lambda x: "TERMINATE" in x.get("content", "")
-)
-
-engineer = autogen.AssistantAgent(
-    name="工程师",
-    llm_config=llm_config,
-    system_message="""你是一个 Python 工程师。
-    完成任务后，在消息末尾加上 TERMINATE。
-    如果需要审核员批准，等待审核结果再继续。"""
-)
-
-critic = autogen.AssistantAgent(
-    name="审核员",
-    llm_config=llm_config,
-    system_message="""你是一个严格的代码审核员。
-    你的职责是找出代码中的问题，而不是赞美。
-    如果代码有问题，明确指出并要求修改。
-    只有代码完全正确时，才说"审核通过"。"""
-)
-
-# ===== GroupChat：控制对话流程 =====
-
-def custom_speaker_selection(last_speaker, groupchat):
-    """自定义发言顺序：工程师 → 审核员 → 工程师（循环）"""
-    messages = groupchat.messages
-    if last_speaker is user_proxy:
-        return engineer
-    elif last_speaker is engineer:
-        return critic
-    elif last_speaker is critic:
-        # 审核通过则结束，否则让工程师修改
-        last_msg = messages[-1]["content"]
-        if "审核通过" in last_msg:
-            return user_proxy
-        return engineer
-    return engineer
-
-groupchat = autogen.GroupChat(
-    agents=[user_proxy, engineer, critic],
-    messages=[],
-    max_round=20,
-    speaker_selection_method=custom_speaker_selection
-)
-
-manager = autogen.GroupChatManager(
-    groupchat=groupchat,
-    llm_config=llm_config
-)
-
-# ===== 启动对话 =====
-user_proxy.initiate_chat(
-    manager,
-    message="写一个 Python 函数，计算斐波那契数列的第 n 项，要求有错误处理和测试"
-)`,
-          explanation: `
-            <strong>关键设计：</strong><br>
-            • <strong>custom_speaker_selection</strong>：自定义发言顺序，实现"工程师→审核→修改"循环<br>
-            • <strong>审核员的 system_message</strong>：明确要求批判性思考，对抗奉承行为<br>
-            • <strong>终止条件</strong>：审核通过才结束，防止低质量代码通过<br>
-            • <strong>human_input_mode="TERMINATE"</strong>：最终由人类决定是否接受结果
-          `
-        },
-        {
-          type: 'concept',
-          title: '📊 三大框架横向对比（2024）',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.85rem;line-height:1.8">
-              <strong>LangGraph（LangChain 出品）</strong><br>
-              ✅ 最灵活的流程控制<br>
-              ✅ Checkpointing 支持最好<br>
-              ✅ 与 LangChain 生态无缝集成<br>
-              ❌ 学习曲线最陡<br>
-              ❌ 版本更新频繁<br><br>
-
-              <strong>AutoGen（微软）</strong><br>
-              ✅ 多 Agent 对话最自然<br>
-              ✅ 代码执行能力强<br>
-              ✅ Human-in-the-loop 设计最好<br>
-              ❌ 对话流程控制较弱<br>
-              ❌ 成本难以预测<br><br>
-
-              <strong>CrewAI</strong><br>
-              ✅ 角色分工最清晰<br>
-              ✅ API 最简洁易用<br>
-              ✅ 适合非技术用户理解<br>
-              ❌ 相对较新，生态较小<br>
-              ❌ 复杂流程控制能力弱<br><br>
-
-              <strong>2024 年趋势：</strong><br>
-              Anthropic 官方推荐：对于大多数场景，<br>
-              直接用 Claude API + 简单的 Python 代码，<br>
-              比引入框架更清晰、更可控。
-            </div>
-          `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ 多 Agent 框架的深层陷阱',
-          items: [
-            '奉承问题（Sycophancy）：Agent 之间互相同意，形成"回音室"——需要专门的批评者 Agent 和独立评估',
-            '成本爆炸：3 个 Agent × 10 轮对话 × 每轮 2K token = 60K token，是单 Agent 的 30 倍',
-            '调试地狱：多 Agent 对话中，一个 Agent 的错误会传播给所有 Agent——需要完整的对话日志',
-            '框架版本地狱：AutoGen 0.2→0.4 是完全重写，CrewAI 也有多次 breaking changes——生产环境锁定版本',
-            '过度工程化：很多用单 Agent 就能解决的问题，被强行拆成多 Agent——增加复杂度但没有收益'
-          ]
         },
         {
           type: 'quiz',
@@ -378,8 +324,8 @@ user_proxy.initiate_chat(
             '批评者 Agent 可以减少 token 消耗'
           ],
           ans: 1,
-          feedback_ok: '🔥 完美！这是多 Agent 系统设计的核心洞察。LLM 天然倾向于同意对方（奉承行为），在多 Agent 系统中这会被放大。专门的批评者 Agent 打破这个循环，确保质量！',
-          feedback_err: '奉承行为（Sycophancy）是多 Agent 系统的核心挑战。当 AI 用户提出方案，AI 助手会倾向于同意——即使方案有问题。批评者 Agent 的职责就是打破这个"互相吹捧"的循环！'
+          feedback_ok: '🔥 完美！这是多 Agent 系统设计的核心洞察。LLM 天然倾向于同意对方，在多 Agent 系统中会被放大。专门的批评者 Agent 打破这个循环，确保质量！',
+          feedback_err: '奉承行为（Sycophancy）是多 Agent 系统的核心挑战。当 AI 提出方案，另一个 AI 会倾向于同意——即使方案有问题。批评者 Agent 打破这个"互相吹捧"的循环！'
         }
       ]
     }

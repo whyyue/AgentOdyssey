@@ -173,214 +173,130 @@ PLANETS.push({
     hell: {
       sections: [
         {
-          type: 'story',
+          type: 'dialogue',
+          title: '🔍 模型做大了就有新能力，还是只是更准一点？',
+          scenario: `<strong>实验场景</strong>：你在做一个翻译实验。你有两个模型——<br>
+• <strong>小模型</strong>（1.3B 参数）：在大量文本上预训练过<br>
+• <strong>大模型</strong>（175B 参数）：同样架构，只是更大<br><br>
+你给两个模型同一个 prompt：<br>
+<code style="background:rgba(0,0,0,.3);padding:4px 8px;border-radius:4px;display:inline-block;margin:8px 0">
+sea otter → loutre de mer<br>
+peppermint → menthe poivrée<br>
+plush giraffe → girafe en peluche<br>
+cheese → ???</code><br><br>
+<strong>大模型</strong>输出：<code>fromage</code> ✅ 正确！<br>
+<strong>小模型</strong>输出：<code>cheese</code> ❌ 它只是复制了输入。<br><br>
+两个模型架构相同，训练数据相同，只是大小不同。小模型"看不懂"你在让它做什么。`,
+          steps: [
+            {
+              question: '小模型（1.3B）和大模型（175B）架构完全相同，训练数据也相同，只是参数量不同。为什么大模型能"看懂" prompt 里的翻译任务，小模型看不懂？',
+              opts: [
+                '大模型训练了更多数据',
+                '大模型的参数足够多，能记住更多的模式——包括"给几个例子就理解任务"这个模式本身',
+                '大模型用了更好的 Transformer 架构',
+                '小模型有 bug'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！这就是"涌现"（Emergence）的核心：不是你设计了 Few-Shot Learning，而是模型大到一定程度后，自发"学会了从例子中理解任务"。小模型的参数容量不够，无法形成这种能力。',
+              aria_wrong: '❌ 两个模型架构完全相同、训练数据也相同。唯一的区别是参数量。想想：参数多了意味着能存储更复杂的模式——那"看几个例子就理解任务"是不是也是一种复杂模式？'
+            },
+            {
+              question: '你测试了不同大小模型做 Few-Shot 翻译的准确率：125M=5%, 350M=8%, 760M=12%, 1.3B=15%, 2.7B=22%, 6.7B=35%, 13B=48%, 175B=75%。这个曲线是什么形状？',
+              opts: [
+                '线性增长——每大一倍，准确率固定增加一些',
+                '平缓增长，到 175B 突然暴涨',
+                '幂律增长——对数尺度下近似线性，规模每扩大 10 倍，性能稳定提升一个台阶',
+                '随机波动，和规模没关系'
+              ],
+              correct: 2,
+              aria_correct: '✅ 正确！这就是 Scaling Laws（规模定律）：性能 ≈ 参数量^α。在对数坐标下几乎是直线。这意味着——你可以预测多大的模型会达到什么性能！',
+              aria_wrong: '❌ 仔细看数据：5%→8%→12%→15%→22%→35%→48%→75%。不是暴涨，而是持续加速。如果你把参数量取对数再画图，会发现什么？'
+            },
+            {
+              question: 'Scaling Laws 告诉我们性能随规模稳定提升。但你发现一个有趣的现象：算术能力在 6.7B 之前几乎为零，之后突然出现。这和 Scaling Laws 矛盾吗？',
+              opts: [
+                '矛盾，说明 Scaling Laws 是错的',
+                '不矛盾——Scaling Laws 描述的是"平均性能"，而涌现能力是"某些特定能力在阈值后突然出现"。两者观察的维度不同',
+                '不矛盾，因为算术不算性能',
+                '矛盾，说明大模型不应该被使用'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！Scaling Laws 和涌现能力是互补的观察：前者说"整体趋势可预测"，后者说"某些能力有阈值效应"。合在一起就是——模型越大越强（可预测），而且会突然解锁新技能（涌现）。',
+              aria_wrong: '❌ Scaling Laws 描述的是模型在多个任务上的"平均趋势"。涌现能力指的是"某个具体能力"的突变。一个是宏观趋势，一个是微观突变——它们矛盾吗？',
+              reveal_on_correct: `<strong>GPT-3 的两个核心发现</strong>：<br>1. <strong>Scaling Laws</strong>：性能 ≈ 参数量^α，可以预测更大模型的表现<br>2. <strong>In-Context Learning</strong>：大模型能从 prompt 中的例子学习新任务，无需梯度更新<br><br>这两个发现合在一起意味着：<br>① 模型越大，已有能力越强（Scaling Laws）<br>② 模型越大，可能解锁全新的能力（涌现）<br>③ 每个新能力解锁后，继续增大规模会让它更强<br><br>这就是为什么整个行业都在往更大模型冲。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你推导出了预训练范式的核心逻辑！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">Scaling Laws（可预测）+ In-Context Learning（涌现）= 预训练范式的理论基础。<br>这不是设计出来的，是 OpenAI 在 2020 年发现的。</div>`
+        },
+        {
+          type: 'concept',
+          title: '📄 你刚才推导出的，2020 年 OpenAI 把它写成了论文',
           html: `
-            <div class="speaker">🔥 地狱模式 - GPT-3 论文深度解读</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，欢迎来到预训练的巅峰——<br>
-              <strong>GPT-3: Language Models are Few-Shot Learners</strong><br><br>
-              这篇 2020 年的论文改变了整个 AI 行业。<br>
-              175B 参数、In-Context Learning、Few-Shot 能力……<br>
-              让我们深入这个里程碑。
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">Language Models are Few-Shot Learners</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">作者：Tom Brown 等 31 人（OpenAI）· NeurIPS 2020<br>引用次数：>20,000</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的两个直觉——"涌现能力"和"规模的可预测性"——正是这篇论文的核心发现！</span>
+            </div>
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">论文的关键数据</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>模型规模</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">8 个版本：125M → 175B<br>175B：96 层、12,288 维度、96 头<br>训练数据：300B tokens<br>训练成本：估计 $4-12M</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>核心结果</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">SuperGLUE：71.8%（超过微调 BERT）<br>算术（2 位）：175B 100% vs 13B 80%<br>Few-Shot 翻译：达可用水平<br>Zero-Shot 代码：~0%</span>
+                </div>
+              </div>
+              <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,.1);border-radius:8px;font-size:.9rem">
+                💡 <strong>意外发现</strong>：GPT-3 从未专门训练过翻译——它是在大量互联网文本上预训练后，通过 Few-Shot prompt 自发学会了翻译。没有人设计这个能力，它涌现出来了。
+              </div>
             </div>
           `
         },
         {
           type: 'concept',
-          title: '📄 论文背景',
+          title: '🚀 预训练范式之后：规模竞赛如何演进（2020→2026）',
           html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
-              <strong>论文信息：</strong><br>
-              • 标题：Language Models are Few-Shot Learners<br>
-              • 作者：OpenAI（Tom Brown 等 31 人）<br>
-              • 发表：NeurIPS 2020<br>
-              • 引用：超过 20,000 次（截至 2024）<br>
-              • 影响：催生了 ChatGPT、Claude 等产品<br><br>
-
-              <strong>核心发现：</strong><br>
-              当语言模型足够大时，它可以通过<strong>上下文学习</strong>（In-Context Learning）<br>
-              完成任务——不需要梯度更新，只需要在 prompt 里给几个例子！
-            </div>
-          `
-        },
-        {
-          type: 'concept',
-          title: '💡 Few-Shot Learning 的突破',
-          html: `
-            <p><strong>三种学习范式对比：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.8">
-              <strong>Zero-Shot（零样本）</strong><br>
-              只给任务描述，不给例子：<br>
-              <code style="background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px">
-              Translate to French: Hello → </code><br><br>
-
-              <strong>One-Shot（单样本）</strong><br>
-              给 1 个例子：<br>
-              <code style="background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px">
-              sea otter → loutre de mer<br>
-              peppermint → </code><br><br>
-
-              <strong>Few-Shot（少样本）</strong><br>
-              给 2-64 个例子：<br>
-              <code style="background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px">
-              sea otter → loutre de mer<br>
-              peppermint → menthe poivrée<br>
-              plush giraffe → girafe en peluche<br>
-              cheese → </code>
-            </div>
-            <div style="margin-top:16px;padding:12px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
-              💡 <strong>关键发现：</strong>GPT-3 的 Few-Shot 性能随模型规模急剧提升。<br>
-              1.3B 参数模型几乎不会 Few-Shot，而 175B 模型接近人类水平！
-            </div>
-          `
-        },
-        {
-          type: 'concept',
-          title: '🏗️ GPT-3 架构细节',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>模型规模（8 个版本）：</strong><br>
-              • GPT-3 Small: 125M 参数<br>
-              • GPT-3 Medium: 350M 参数<br>
-              • GPT-3 Large: 760M 参数<br>
-              • GPT-3 XL: 1.3B 参数<br>
-              • GPT-3 2.7B: 2.7B 参数<br>
-              • GPT-3 6.7B: 6.7B 参数<br>
-              • GPT-3 13B: 13B 参数<br>
-              • <strong style="color:var(--cyan)">GPT-3 175B: 175B 参数</strong>（主力模型）<br><br>
-
-              <strong>GPT-3 175B 配置：</strong><br>
-              • 层数（Layers）：96<br>
-              • 隐藏维度（d_model）：12,288<br>
-              • 注意力头数（Heads）：96<br>
-              • Context Window：2,048 tokens<br>
-              • Batch Size：3.2M tokens<br>
-              • 训练数据：300B tokens（过滤后）<br>
-              • 训练时长：数月（具体未公开）<br>
-              • 训练成本：估计 $4-12M
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '📊 Scaling Laws（规模定律）',
-          code: `# GPT-3 论文的核心发现：性能随规模的幂律关系
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-# 模型规模（参数量）
-params = np.array([0.125, 0.35, 0.76, 1.3, 2.7, 6.7, 13, 175])  # 单位：B
-
-# SuperGLUE 性能（Few-Shot，论文 Figure 3.8）
-superglue_scores = np.array([
-    30.5,  # 125M
-    35.2,  # 350M
-    42.1,  # 760M
-    45.3,  # 1.3B
-    52.8,  # 2.7B
-    60.4,  # 6.7B
-    65.2,  # 13B
-    71.8   # 175B（接近人类 89.8）
-])
-
-# 幂律拟合：Performance ∝ N^α
-# 论文发现 α ≈ 0.095（对数尺度下近似线性）
-
-print("关键观察：")
-print("1. 性能随规模持续提升，未见饱和")
-print("2. 175B 比 13B 提升 6.6 个百分点")
-print("3. 暗示更大模型（GPT-4）会更强")`,
-          explanation: `
-            <strong>Scaling Laws 的三大发现：</strong><br>
-            • <strong>性能 ∝ 参数量^α</strong>：模型越大，能力越强，且关系可预测<br>
-            • <strong>未见饱和</strong>：175B 仍在上升曲线上，更大模型会更强<br>
-            • <strong>Few-Shot 能力涌现</strong>：小模型几乎不会 Few-Shot，大模型突然"学会"<br><br>
-            这直接催生了 GPT-4（估计 1.8T 参数）、Claude Opus 等超大模型。
-          `
-        },
-        {
-          type: 'concept',
-          title: '📊 关键实验结果',
-          html: `
-            <p><strong>GPT-3 在多个基准测试上的表现：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.85rem;line-height:1.8">
-              <strong>1. SuperGLUE（语言理解）</strong><br>
-              • Few-Shot GPT-3 175B: 71.8%<br>
-              • Fine-tuned BERT Large: 69.0%<br>
-              • 人类基准: 89.8%<br>
-              → GPT-3 不微调就超过了微调的 BERT！<br><br>
-
-              <strong>2. 翻译任务（WMT'14 En→Fr）</strong><br>
-              • Few-Shot GPT-3: 39.2 BLEU<br>
-              • 监督学习 SOTA: 45.6 BLEU<br>
-              → 未见过翻译训练数据，仅靠 Few-Shot 达到可用水平<br><br>
-
-              <strong>3. 算术推理（2 位数加法）</strong><br>
-              • GPT-3 175B: 100% 准确率<br>
-              • GPT-3 13B: 80% 准确率<br>
-              → 大模型"涌现"出算术能力<br><br>
-
-              <strong>4. 代码生成（HumanEval，后续研究）</strong><br>
-              • GPT-3 Zero-Shot: ~0%<br>
-              • GPT-3 Few-Shot: ~10%<br>
-              → 催生了 Codex（GitHub Copilot 的基础）
-            </div>
-          `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ GPT-3 的局限性（论文坦诚讨论）',
-          items: [
-            '幻觉问题：会自信地生成错误信息，尤其是需要精确知识的任务',
-            '常识推理弱：在需要物理常识、因果推理的任务上表现不佳',
-            '长文本理解：2048 tokens 的 Context Window 限制了长文档处理',
-            '偏见和有害内容：训练数据包含互联网内容，继承了社会偏见',
-            '样本效率低：Few-Shot 需要 10-100 个例子，人类只需 1-2 个',
-            '无法持续学习：预训练后知识冻结，无法更新到新信息'
-          ]
-        },
-        {
-          type: 'concept',
-          title: '🔮 GPT-3 的历史影响',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;line-height:1.9">
-              <strong>GPT-3 之后的演进路径：</strong><br><br>
-
-              <strong>2021 - Codex</strong><br>
-              在代码数据上继续训练 GPT-3 → GitHub Copilot<br><br>
-
-              <strong>2022 - InstructGPT</strong><br>
-              用 RLHF 对齐 GPT-3 → ChatGPT 的技术基础<br><br>
-
-              <strong>2022 - ChatGPT</strong><br>
-              InstructGPT + 对话优化 → 引爆 AI 热潮<br><br>
-
-              <strong>2023 - GPT-4</strong><br>
-              更大规模（估计 1.8T）+ 多模态 → 当前 SOTA<br><br>
-
-              <strong>2024 - Claude 3 / Gemini 1.5</strong><br>
-              长上下文（200K tokens）+ 更强推理能力
-            </div>
-            <div style="margin-top:16px;padding:12px;background:rgba(0,229,255,.05);border-left:3px solid var(--cyan);border-radius:8px;font-size:.9rem">
-              💡 <strong>核心启示：</strong><br>
-              GPT-3 证明了"规模是关键"——足够大的模型会涌现出新能力。<br>
-              这个发现重塑了整个 AI 行业的研发方向。
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="padding:12px;background:rgba(168,85,247,.08);border-left:3px solid var(--purple);border-radius:8px">
+                <strong>2020 · GPT-3（OpenAI）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">175B 参数，发现 Scaling Laws 和 In-Context Learning。"只需预测下一个词"的预训练范式被验证。催生了整个大模型浪潮。</span>
+              </div>
+              <div style="padding:12px;background:rgba(0,229,255,.08);border-left:3px solid var(--cyan);border-radius:8px">
+                <strong>2021 · Chinchilla（DeepMind）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">发现 Scaling Laws 的另一面：训练数据量和模型参数量应该同步增长。之前大家只做大模型，数据量不够。修正了规模定律。</span>
+              </div>
+              <div style="padding:12px;background:rgba(16,185,129,.08);border-left:3px solid var(--green);border-radius:8px">
+                <strong>2022 · ChatGPT（OpenAI）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">GPT-3.5 + RLHF 对齐。预训练模型 + 后训练对齐 = 可以对话的产品。引爆 AI 热潮，两个月用户破亿。</span>
+              </div>
+              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px">
+                <strong>2023-2024 · 涌现能力争议</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">斯坦福团队质疑涌现可能是"评估指标造成的假象"——换用不同指标，曲线可能变成平滑增长。学术界开始重新审视 Scaling Laws。</span>
+              </div>
+              <div style="padding:12px;background:rgba(239,68,68,.08);border-left:3px solid var(--red);border-radius:8px">
+                <strong>2024-2026 · 效率回归</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Llama 3、DeepSeek、Gemma 等开源模型证明：小模型（7-70B）+ 高质量数据 + 精细训练 > 单纯堆参数。Scaling Laws 仍然有效，但"怎么用"变得更聪明了。</span>
+              </div>
             </div>
           `
         },
         {
           type: 'quiz',
-          q: 'GPT-3 论文最核心的发现是什么？',
+          q: 'GPT-3 论文的两个核心发现分别是什么？',
           opts: [
-            'Transformer 架构比 RNN 更好',
-            '当模型足够大时，可以通过 In-Context Learning（Few-Shot）完成任务，无需微调',
-            'RLHF 可以让模型更安全',
-            '代码生成能力很强'
+            'Transformer 比 RNN 好 + RLHF 有用',
+            'Scaling Laws（性能可预测地随规模提升）+ In-Context Learning（大模型能从 prompt 例子学习新任务，无需微调）',
+            '代码生成能力强 + 翻译能力强',
+            '模型越大越好 + 数据越多越好'
           ],
           ans: 1,
-          feedback_ok: '🔥 完美！In-Context Learning 是 GPT-3 的核心突破。这个发现改变了 AI 的使用方式——从"每个任务都要微调"变成"给几个例子就能做"。这也是为什么 ChatGPT 可以做各种任务而不需要专门训练。',
-          feedback_err: 'GPT-3 的核心贡献是发现了 In-Context Learning（Few-Shot）能力。当模型足够大（175B），只需要在 prompt 里给几个例子，模型就能理解任务并完成——不需要梯度更新！这是预训练范式的重大突破。'
+          feedback_ok: '🔥 完美！Scaling Laws 告诉你"投入更多算力能得到多少提升"（可预测），In-Context Learning 告诉你"不需要为每个任务微调"（涌现）。这两个发现合在一起，就是预训练范式的理论基础——先花几百万美元训练一个通用模型，然后通过 prompt 让它做任何事！',
+          feedback_err: 'GPT-3 的两个核心发现：① Scaling Laws——性能随规模可预测提升；② In-Context Learning——大模型能从 prompt 中的例子学习新任务，无需梯度更新。前者告诉你"值得砸钱"，后者告诉你"不需要每个任务都微调"。'
         }
       ]
     }

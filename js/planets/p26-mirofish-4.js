@@ -210,168 +210,93 @@ PLANETS.push({
     hell: {
       sections: [
         {
-          type: 'story',
-          title: '😈 地狱挑战：实时交互式报告系统',
-          content: `
-            普通的报告生成是"一次性"的——用户等待，Agent 分析，输出报告。<br><br>
-            但真正的专业系统需要<strong>实时交互</strong>：<br>
-            • 用户可以在报告生成过程中追问<br>
-            • Agent 能根据追问动态调整分析方向<br>
-            • 支持"钻取"（drill-down）：从宏观趋势深入到具体 Agent 的行为<br>
-            • 支持"假设分析"：如果某个变量不同，结果会怎样？<br><br>
-            这需要将 ReportAgent 改造为<strong>流式 + 多轮对话</strong>模式。
-          `
-        },
-        {
-          type: 'code',
-          title: '💻 流式交互式 ReportAgent',
-          code: `import asyncio
-from anthropic import AsyncAnthropic
-
-class InteractiveReportAgent:
-    def __init__(self, simulation_db):
-        self.db = simulation_db
-        self.llm = AsyncAnthropic()
-        self.session_history = []  # 跨轮次的对话历史
-        self.analysis_cache = {}   # 缓存已查询的数据，避免重复查询
-
-    async def stream_analysis(self, user_message: str):
-        """流式生成分析，支持实时显示"""
-        self.session_history.append({
-            "role": "user",
-            "content": user_message
-        })
-
-        full_response = ""
-        tool_calls = []
-
-        # 流式调用 LLM
-        async with self.llm.messages.stream(
-            model="claude-opus-4-6",
-            max_tokens=4096,
-            system=self._build_system_prompt(),
-            tools=self._get_tools(),
-            messages=self.session_history
-        ) as stream:
-            async for event in stream:
-                if event.type == "content_block_delta":
-                    if hasattr(event.delta, "text"):
-                        # 实时输出文字
-                        print(event.delta.text, end="", flush=True)
-                        full_response += event.delta.text
-                    elif hasattr(event.delta, "partial_json"):
-                        # 收集工具调用参数
-                        tool_calls.append(event.delta.partial_json)
-
-        # 处理工具调用
-        if tool_calls:
-            results = await self._execute_tools_async(tool_calls)
-            self.session_history.append({"role": "assistant", "content": full_response})
-            self.session_history.append({"role": "user", "content": results})
-            # 递归继续分析
-            await self.stream_analysis("")
-        else:
-            self.session_history.append({"role": "assistant", "content": full_response})
-
-    def _build_system_prompt(self):
-        # 动态构建 system prompt，包含已分析的关键发现
-        findings = self.analysis_cache.get("key_findings", "尚未发现关键信息")
-        return f"""你是 MiroFish 的专业仿真分析师。
-已知关键发现：{findings}
-请基于已有发现继续深入分析，避免重复查询已知数据。"""`,
-          explanation: `
-            <strong>地狱级技术点：</strong><br>
-            • <code>AsyncAnthropic</code>：异步客户端，支持流式输出<br>
-            • <code>stream()</code>：实时输出 token，用户不需要等待完整响应<br>
-            • <code>session_history</code>：跨轮次保留对话历史，支持追问<br>
-            • <code>analysis_cache</code>：缓存已查询数据，避免重复消耗 token<br>
-            • <code>动态 system prompt</code>：将已有发现注入 prompt，让 Agent 能"记住"之前的分析
-          `
-        },
-        {
-          type: 'challenge',
-          title: '✏️ 挑战：实现假设分析功能',
-          description: '为 InteractiveReportAgent 添加一个 "what_if" 工具，让用户能问"如果某个关键 Agent 的立场改变，结果会怎样？"',
-          starter: `def _get_what_if_tool(self):
-    return {
-        "name": "what_if_analysis",
-        "description": "___",  # TODO: 填写工具描述
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "agent_id": {"type": "integer", "description": "___"},
-                "new_stance": {"type": "string", "description": "___"},
-                "from_round": {"type": "integer", "description": "___"}
+          type: 'dialogue',
+          title: '🔍 AI 写的 100 页报告，用户只看了第一页就关了',
+          scenario: `<strong>故障场景</strong>：你的仿真系统跑完了 1000 个 Agent 的模拟，生成了 100 页的原始数据。你让报告 Agent 自动生成分析报告。<br><br>
+报告 Agent 输出了 50 页的 PDF，内容：<br>
+• 第 1-10 页：数据表格，密密麻麻的数字<br>
+• 第 11-30 页：统计图表，每个维度一张图<br>
+• 第 31-45 页：文字分析，但没有结论<br>
+• 第 46-50 页：附录<br><br>
+用户看了第一页就关了："我不要看数据，我要知道<strong>结论是什么、该怎么决策</strong>。"<br><br>
+报告 Agent 把"分析数据"当成了目标，但用户的目标是"帮我做决策"。`,
+          steps: [
+            {
+              question: '用户不要看数据表格，要"结论和决策建议"。报告 Agent 缺少什么？',
+              opts: [
+                '更多的数据',
+                '以用户需求为中心的写作框架——先说结论（Executive Summary），再说"所以呢"（建议），最后才是支撑数据。用户关心的是"我该怎么做"，不是"数据是什么"',
+                '更漂亮的图表',
+                '更长的报告'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！报告的结构应该倒过来：先说结论（1 页），再展开核心洞察（3-5 页），详细数据放附录。这是商业报告的铁律——先给结论，让用户决定是否深入。',
+              aria_wrong: '❌ 更多数据只会让报告更长。想想：你老板让你写季度报告，他会先看什么？——"结论是什么？我该怎么做？"不是 100 行的 Excel。'
             },
-            "required": ["agent_id", "new_stance"]
-        }
-    }
-
-def execute_what_if(self, agent_id, new_stance, from_round=0):
-    # TODO: 查询该 Agent 的影响力网络
-    influence_network = ___
-
-    # TODO: 估算立场改变的影响范围
-    affected_agents = ___
-
-    return {
-        "agent_id": agent_id,
-        "original_stance": ___,
-        "new_stance": new_stance,
-        "estimated_impact": ___
-    }`,
-          solution: `def _get_what_if_tool(self):
-    return {
-        "name": "what_if_analysis",
-        "description": "假设某个 Agent 的立场发生改变，分析这会如何影响整体舆论走向",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "agent_id": {"type": "integer", "description": "要改变立场的 Agent ID"},
-                "new_stance": {"type": "string", "description": "新的立场描述"},
-                "from_round": {"type": "integer", "description": "从第几轮开始改变，默认从头"}
+            {
+              question: '报告 Agent 要从 1000 个 Agent 的模拟数据中提炼"结论"。但数据量太大，一次塞不进 Context Window。怎么处理？',
+              opts: [
+                '只看前 100 个 Agent 的数据',
+                '分层摘要：先让小模型对每个 Agent 生成微摘要，再让大模型从微摘要中提炼全局结论——MapReduce 思路',
+                '随机抽样 10 个 Agent',
+                '压缩数据'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！MapReduce 思路：1000 个微摘要（每个 100 字）→ 汇总成 10 个分组摘要（每个 500 字）→ 最终 1 个全局报告。三次调用，每次都在 Context Window 内，但信息层层提炼。',
+              aria_wrong: '❌ 只看前 100 个或随机抽样会丢失重要信息。想想：MapReduce 的思路是什么？把大任务拆成小任务，每步处理一部分，最后汇总。能不能让 AI 也这么做？'
             },
-            "required": ["agent_id", "new_stance"]
-        }
-    }
-
-def execute_what_if(self, agent_id, new_stance, from_round=0):
-    influence_network = self.db.get_influence_network(agent_id)
-    affected_agents = [n for n in influence_network if n["influence_score"] > 0.3]
-    original = self.db.get_agent_stance(agent_id)
-
-    return {
-        "agent_id": agent_id,
-        "original_stance": original,
-        "new_stance": new_stance,
-        "estimated_impact": f"可能影响 {len(affected_agents)} 个直接关联 Agent，占总体的 {len(affected_agents)/10:.1f}%"
-    }`,
-          hints: [
-            'description 要让 LLM 明白这个工具用于"假设分析"场景',
-            '影响力网络可以通过 self.db.get_influence_network(agent_id) 获取',
-            '过滤 influence_score > 0.3 的节点作为"直接影响"的 Agent'
-          ],
-          validate: function(code) {
-            if (code.includes('what_if') && code.includes('description') && !code.includes('___') && code.includes('influence')) {
-              return { ok: true, msg: '✅ 完美！假设分析工具设计合理，ReportAgent 现在能回答"如果...会怎样"的问题了！' };
+            {
+              question: '报告 Agent 生成的洞察"面包师群体收入下降 15%"——但这只是描述性统计，不是预测性洞察。用户需要"接下来会怎样"。怎么让报告 Agent 做预测？',
+              opts: [
+                '告诉用户"AI 不能预测未来"',
+                '让报告 Agent 基于历史趋势和因果关系进行外推："按当前趋势，下季度面包师收入可能继续下降 5-10%，建议关注面粉供应链变化"——有依据的预测，附置信区间',
+                '随便编一个预测',
+                '增加更多历史数据'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！预测性报告 = 趋势外推 + 因果分析 + 置信度声明。不是"我确定未来会怎样"，而是"按当前数据，可能出现以下情况，建议做以下准备"。这就是从"描述过去"到"预测未来"的升级。',
+              aria_wrong: '❌ AI 确实不能 100% 预测未来，但可以基于数据做有依据的趋势判断。想想：天气预报也不是 100% 准确，但它有"降水概率 70%"——概率性的预测比没有预测好得多。',
+              reveal_on_correct: `<strong>报告 Agent 的三层架构</strong>：<br>1. <strong>数据聚合</strong>：MapReduce 式分层摘要，从海量数据中提炼关键指标<br>2. <strong>洞察生成</strong>：描述性统计 + 因果分析 + 趋势外推<br>3. <strong>用户导向</strong>：先结论、再建议、最后数据——用户关心的不是"数据"，而是"所以呢？"`
             }
-            if (code.includes('___')) return { ok: false, msg: '还有未填写的 TODO 部分！' };
-            if (!code.includes('influence')) return { ok: false, msg: '需要查询影响力网络来估算影响范围！' };
-            return { ok: false, msg: '检查工具描述和参数定义是否完整。' };
-          }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你设计出了从数据到决策的报告系统！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">数据聚合 + 洞察生成 + 用户导向 = 让报告从"数据堆砌"变成"决策支持"。<br>用户要的不是信息，是行动指南。</div>`
+        },
+        {
+          type: 'concept',
+          title: '📄 AI 报告系统的核心：从描述到预测',
+          html: `
+            <div style="margin:14px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">报告的三层价值</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(168,85,247,.08);border-radius:8px">
+                  <strong>描述层：发生了什么？</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">数据统计、趋势图表、异常检测。AI 非常擅长。但用户看了只会说"然后呢？"</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,229,255,.08);border-radius:8px">
+                  <strong>洞察层：为什么会这样？</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">因果分析、相关性发现、异常归因。这是从"数据"到"理解"的关键一步。</span>
+                </div>
+                <div style="padding:12px;background:rgba(16,185,129,.08);border-radius:8px">
+                  <strong>决策层：我该怎么做？</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">趋势预测 + 行动建议 + 风险评估。用户最关心的层次。也是 AI 报告系统最难做好的部分。</span>
+                </div>
+              </div>
+            </div>
+          `
         },
         {
           type: 'quiz',
-          q: '流式输出（streaming）在 ReportAgent 中的主要价值是什么？',
+          q: '好的报告 Agent 和差的最大区别是什么？',
           opts: [
-            '减少 API 费用',
-            '让用户能实时看到分析过程，提升交互体验，同时可以提前中断不需要的分析',
-            '提高分析准确性',
-            '减少 token 消耗'
+            '图表更漂亮',
+            '从用户需求出发：先给结论和行动建议，数据作为支撑——用户要的是"我该怎么做"，不是"数据是什么"',
+            '报告更长更详细',
+            '用了更强的模型'
           ],
           ans: 1,
-          feedback_ok: '✅ 正确！流式输出让用户不需要盯着空白屏幕等待，还能在看到初步结果后决定是否继续。',
-          feedback_err: '流式输出的核心价值是"实时反馈"——用户能看到 Agent 的思考过程，而不是等待一个黑盒输出。'
+          feedback_ok: '🔥 正确！差的报告堆数据，好的报告帮决策。用户打开报告时心里想的是"我该怎么做"——如果你的第一页就是结论和建议，用户会觉得"这个报告太有用了"。',
+          feedback_err: '用户不要更多数据，要"所以呢？"。好的报告从结论开始，差的报告从数据开始。先给答案，再给证据。'
         }
       ]
     }

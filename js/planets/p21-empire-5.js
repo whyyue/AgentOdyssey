@@ -274,130 +274,105 @@ async def websocket_endpoint(ws: WebSocket, task_id: str):
     hell: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔥 地狱模式 - 生产环境最佳实践</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：你已经掌握了三省六部的核心设计。<br>
-              最后这一关，我们讨论真正上线时需要面对的挑战：<br><br>
-              <strong>可靠性、成本、安全、可扩展性</strong>。<br><br>
-              这是 EDICT 项目在生产环境中真实面对的问题。
-            </div>
-          `
+          type: 'dialogue',
+          title: '🔍 12 个 Agent 同时崩了，你的 API 账单涨了 100 倍',
+          scenario: `<strong>故障场景</strong>：你的三省六部系统稳定运行了一个月。<br>
+今天，一个用户提交了一个异常复杂的任务。中书省制定了方案，门下省准奏，尚书省分配给了 6 个部门同时执行。<br><br>
+30 分钟后，你收到告警：<br>
+• API 费用在 30 分钟内消耗了 $500（平时一整天 $50）<br>
+• 6 个部门 Agent 中有 4 个超时失败了<br>
+• 失败的 Agent 触发了自动重试，重试又失败，又重试……<br>
+• 尚书省还在不断分配新任务，不知道下游已经崩了<br><br>
+费用暴涨 + 任务失败 + 无限重试 = 三重灾难。`,
+          steps: [
+            {
+              question: '4 个部门 Agent 超时失败后自动重试，重试又失败又重试——每次重试都消耗 token。怎么防止这种"失败雪崩"？',
+              opts: [
+                '不重试，失败就直接返回错误',
+                '设置重试上限（如 3 次）+ 指数退避（每次间隔翻倍）+ 单任务总 token 预算硬限制',
+                '增加超时时间',
+                '用更快的模型'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！三层防护：① 重试上限防无限循环 ② 指数退避防止"马上重试又失败" ③ 总 token 预算作为硬天花板。即使前两层失效，第三层也能在费用失控前强制停止。',
+              aria_wrong: '❌ 不重试太极端——临时网络问题重试一次就好了。问题是"重试多少次？间隔多久？总消耗上限多少？"。你需要的是防护机制，不是禁用。'
+            },
+            {
+              question: '尚书省还在不断分配新任务，不知道下游已经崩了。整个三省六部之间缺少什么机制？',
+              opts: [
+                '让尚书省更聪明',
+                '错误传播机制——下游失败时，错误信号必须向上传播，上游收到信号后停止分配新任务。这就是 Saga 模式中的"补偿"',
+                '减少部门数量',
+                '串行执行所有任务'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！错误传播 + 补偿操作 = Saga 模式。下游部门失败时，尚书省收到信号，停止分配新任务，并按反序对已完成的步骤执行补偿（回滚）。这是分布式系统的标准失败处理模式。',
+              aria_wrong: '❌ 不是尚书省不够聪明——它只是没有收到"下游崩了"的信号。如果有一个机制让下游的错误"向上传播"，尚书省会怎么做？'
+            },
+            {
+              question: '你用了 Saga 模式回滚，但回滚时某个补偿操作也失败了（比如"撤销已发送的通知"失败了）。怎么办？',
+              opts: [
+                '忽略补偿失败',
+                '补偿失败 → 升级给人类处理 + 详细日志记录。分布式系统的铁律：不是所有失败都能自动修复，但所有失败都必须被记录和告警',
+                '重试补偿操作直到成功',
+                '重启整个系统'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！补偿本身也可能失败——这是分布式系统的现实。关键是：① 详细记录补偿失败 ② 立即告警运维 ③ 人工介入处理。不能假装问题不存在，也不能无限重试。',
+              aria_wrong: '❌ 忽略补偿失败 = 数据不一致。无限重试 = 可能永远卡住。想想：如果自动修复失败了，最后的安全网是什么？',
+              reveal_on_correct: `<strong>生产系统的三层可靠性保障</strong>：<br>1. <strong>预防</strong>：重试上限 + token 预算 + 超时保护（防止单点失败变成雪崩）<br>2. <strong>补偿</strong>：Saga 模式按反序回滚已完成的步骤（自动修复）<br>3. <strong>兜底</strong>：补偿失败 → 人工介入 + 完整审计日志（最后的安全网）<br><br>三层缺一不可。前两层是自动化，第三层是人类智慧。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你设计出了生产级分布式失败处理架构！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">预防 + 补偿 + 兜底 = 三层可靠性。<br>系统越复杂，失败处理越重要。12 个 Agent 的系统比 1 个 Agent 的系统更容易崩，但也更需要生产级保障。</div>`
         },
         {
           type: 'concept',
-          title: '💰 成本控制：Token 预算系统',
+          title: '📄 你刚才设计的，就是 EDICT 的生产可靠性架构',
           html: `
-            <p><strong>Multi-Agent 系统最大的隐患是成本失控。</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(239,68,68,.05);border-left:3px solid var(--red);border-radius:8px;font-size:.9rem;line-height:1.7">
-              场景：门下省封驳了 3 轮，中书省每次都用 4000 tokens 重写方案。<br>
-              再加上 12 个 Agent 并行执行……<br>
-              <strong>一个任务可能消耗 $5~50 的 API 费用！</strong>
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">EDICT 生产级保障：Token 预算 + Saga + 幂等性</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">从 demo 到生产，不是加更多功能，而是加更多"防护网"</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的三层保障，正是 EDICT 在生产环境真实使用的架构！</span>
             </div>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.05);border-left:3px solid var(--cyan);border-radius:8px;font-size:.9rem;line-height:1.8">
-              <strong>EDICT 的成本控制策略：</strong><br>
-              • 任务级 Token 预算：每个任务设置 max_tokens 上限<br>
-              • 阶段预算分配：规划 20%、审核 10%、执行 70%<br>
-              • 超预算预警：消耗 80% 时通知人工介入<br>
-              • 模型分级使用：简单任务用 Haiku，复杂规划用 Opus<br>
-              • Prompt 缓存：相似任务复用历史规划，减少重复 tokens
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '🛡️ 可靠性：Saga 模式处理分布式失败',
-          code: `class ImperialSaga:
-    """Saga 模式：分布式任务的失败补偿"""
 
-    # 每个步骤对应一个补偿操作
-    COMPENSATIONS = {
-        TaskState.ZHONGSHU: "cancel_plan",
-        TaskState.ASSIGNED:  "unassign_departments",
-        TaskState.DOING:     "abort_department_tasks",
-    }
-
-    async def run_with_compensation(self, task: Task):
-        completed_steps = []
-        try:
-            for step in self.steps:
-                await step.execute(task)
-                completed_steps.append(step)
-
-        except Exception as e:
-            # 按相反顺序补偿已完成的步骤
-            for step in reversed(completed_steps):
-                compensation = self.COMPENSATIONS.get(step.state)
-                if compensation:
-                    try:
-                        await getattr(self, compensation)(task)
-                    except Exception as comp_err:
-                        # 补偿失败：记录日志，人工处理
-                        await self.alert_ops(task, comp_err)
-
-            await self.sm.transition(
-                task, TaskState.CANCELLED, "saga"
-            )
-            raise
-
-# 幂等性保护：防止重试导致重复执行
-async def idempotent_execute(task_id: str, step: str, fn):
-    key = f"executed:{task_id}:{step}"
-    if await redis.exists(key):
-        return await redis.get(key)  # 返回缓存结果
-    result = await fn()
-    await redis.setex(key, 3600, result)  # 缓存1小时
-    return result`,
-          explanation: `
-            <strong>分布式可靠性关键技术：</strong><br>
-            • <strong>Saga 模式</strong>：无法用数据库事务的分布式场景，用补偿操作回滚<br>
-            • 补偿顺序：必须按步骤的反序执行，才能正确撤销<br>
-            • <strong>幂等性</strong>：用 Redis 记录已执行的步骤，网络重试不会重复执行<br>
-            • 补偿失败兜底：补偿本身也可能失败，需要告警人工处理（二次事故）
-          `
-        },
-        {
-          type: 'concept',
-          title: '📊 帝国篇知识图谱',
-          html: `
-            <p><strong>五颗星球，一个完整的生产级系统：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.85rem;line-height:1.9">
-              <strong>架构层（p17）</strong><br>
-              三省六部分工 → 解决"谁做什么"的问题<br><br>
-
-              <strong>控制层（p18）</strong><br>
-              状态机 + 权限矩阵 → 解决"怎么保证按规矩来"<br><br>
-
-              <strong>观测层（p19）</strong><br>
-              Event-Driven + Dashboard → 解决"怎么知道在发生什么"<br><br>
-
-              <strong>质量层（p20）</strong><br>
-              门下省审核 → 解决"怎么保证输出质量"<br><br>
-
-              <strong>工程层（p21）</strong><br>
-              成本控制 + Saga + 幂等性 → 解决"怎么真正上线"
-            </div>
-            <div style="margin-top:16px;padding:14px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
-              🏛️ <strong>三省六部的设计哲学：</strong><br>
-              1300 年前，唐朝用制度解决了"如何让一个大帝国有序运转"。<br>
-              今天，我们用同样的思想解决"如何让 12 个 AI Agent 可信协作"。<br><br>
-              <strong>好的制度设计，跨越千年依然有效。</strong>
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">帝国篇知识图谱：五颗星球，一个完整系统</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px">
+                <div style="padding:10px;background:rgba(168,85,247,.08);border-radius:8px">
+                  <strong>P17 架构层</strong>：三省六部分工 → 解决"谁做什么"
+                </div>
+                <div style="padding:10px;background:rgba(0,229,255,.08);border-radius:8px">
+                  <strong>P18 控制层</strong>：状态机 + 权限矩阵 → 解决"怎么保证按规矩来"
+                </div>
+                <div style="padding:10px;background:rgba(16,185,129,.08);border-radius:8px">
+                  <strong>P19 观测层</strong>：Event-Driven + Dashboard → 解决"怎么知道在发生什么"
+                </div>
+                <div style="padding:10px;background:rgba(251,191,36,.08);border-radius:8px">
+                  <strong>P20 质量层</strong>：门下省审核 → 解决"怎么保证输出质量"
+                </div>
+                <div style="padding:10px;background:rgba(239,68,68,.08);border-radius:8px">
+                  <strong>P21 工程层</strong>：成本控制 + Saga + 幂等性 → 解决"怎么真正上线"
+                </div>
+              </div>
+              <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,.1);border-radius:8px;font-size:.9rem">
+                🏛️ 1300 年前，唐朝用三省六部解决了"如何让大帝国有序运转"。今天，我们用同样的思想解决"如何让 12 个 AI Agent 可信协作"。<strong>好的制度设计，跨越千年依然有效。</strong>
+              </div>
             </div>
           `
         },
         {
           type: 'quiz',
-          q: 'EDICT 使用 Saga 模式而非数据库事务（ACID）来保证分布式一致性，根本原因是什么？',
+          q: 'EDICT 使用 Saga 模式而非数据库事务（ACID），根本原因是什么？',
           opts: [
-            'Saga 性能比数据库事务更高',
+            'Saga 性能比 ACID 更高',
             '跨多个 LLM API 调用和微服务的操作无法纳入单个数据库事务，Saga 用补偿操作实现最终一致性',
-            '数据库事务不支持异步操作',
+            '数据库事务不支持异步',
             'Saga 代码更简单'
           ],
           ans: 1,
-          feedback_ok: '🔥 深刻！ACID 事务要求所有操作在同一个数据库连接内原子提交。但三省六部的每一步都是一次独立的 LLM API 调用，可能跨越多个服务和时间段，根本无法纳入单个事务。Saga 用"补偿操作"模拟回滚，牺牲强一致性换取可操作性——这是分布式系统的基本取舍。',
-          feedback_err: '关键在于事务的边界。数据库事务要求操作在同一连接内瞬间完成。但三省六部的工作流可能持续数分钟、跨越多个 LLM API、多个微服务，这超出了单个 ACID 事务的能力范围。Saga 是分布式系统的标准解决方案。'
+          feedback_ok: '🔥 深刻！ACID 要求所有操作在同一个数据库连接内原子提交。三省六部的每一步都是独立的 LLM API 调用，跨越多个服务和时间段，超出 ACID 事务的能力范围。Saga 用"补偿操作"模拟回滚，是分布式系统的标准解决方案。',
+          feedback_err: '关键在于事务边界。三省六部的工作流持续数分钟、跨越多个 LLM API 和微服务，无法纳入单个 ACID 事务。Saga 是分布式系统的标准失败处理模式。'
         }
       ]
     }

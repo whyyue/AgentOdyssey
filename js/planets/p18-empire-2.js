@@ -260,185 +260,99 @@ class Agent:
     hell: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔥 地狱模式 - 状态机工程实践</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，生产环境的状态机远比示例复杂。<br><br>
-              我们要面对：<strong>并发竞态、分布式一致性、幂等性、超时回滚、
-              审计合规</strong>……<br><br>
-              这一关，我们深入 EDICT 的真实实现。
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '🏭 生产级状态机实现',
-          code: `import asyncio
-from datetime import datetime
-from typing import Optional
-
-class TaskStateMachine:
-    def __init__(self, event_bus):
-        self._lock = asyncio.Lock()   # 防并发竞态
-        self.event_bus = event_bus
-
-    async def transition(self, task, new_state: TaskState,
-                         actor: str, reason: str = ""):
-        async with self._lock:  # 原子操作
-            # 1. 合法性检查
-            allowed = VALID_TRANSITIONS.get(task.state, set())
-            if new_state not in allowed:
-                raise ValueError(
-                    f"非法转换: {task.state} → {new_state}"
-                )
-
-            old_state = task.state
-
-            # 2. 写入不可变审计日志
-            task.flow_log.append({
-                "seq":       len(task.flow_log) + 1,
-                "from":      old_state.value,
-                "to":        new_state.value,
-                "actor":     actor,
-                "reason":    reason,
-                "ts":        datetime.utcnow().isoformat() + "Z",
-                "immutable": True   # 标记不可修改
-            })
-
-            # 3. 更新状态
-            task.state = new_state
-            task.updated_at = datetime.utcnow()
-
-            # 4. 发布事件（触发 Dashboard 更新）
-            await self.event_bus.publish(Event(
-                topic=f"task.state.{new_state.value}",
-                payload={
-                    "task_id":   task.id,
-                    "old_state": old_state.value,
-                    "new_state": new_state.value,
-                    "actor":     actor
-                }
-            ))
-
-            return task`,
-          explanation: `
-            <strong>生产级关键设计：</strong><br>
-            • <code>asyncio.Lock</code>：防止并发竞态，保证转换原子性<br>
-            • 不可变 flow_log：seq 单调递增，immutable 标记，禁止篡改<br>
-            • actor + reason：记录"谁"因为"什么原因"触发了转换<br>
-            • Event Bus 联动：状态变更实时推送到 Dashboard<br>
-            • 分布式场景需换用数据库乐观锁（version 字段 + CAS 操作）
-          `
-        },
-        {
-          type: 'code',
-          title: '📋 EDICT Task JSON Schema（真实数据结构）',
-          code: `{
-  "id": "task-20260324-001",
-  "title": "开发用户登录功能",
-  "state": "done",
-  "created_at": "2026-03-24T10:00:00Z",
-  "updated_at": "2026-03-24T16:00:00Z",
-
-  "flow_log": [
-    {
-      "seq": 1,
-      "from": "pending",
-      "to": "taizi",
-      "actor": "system",
-      "reason": "用户提交任务",
-      "ts": "2026-03-24T10:00:01Z"
-    },
-    {
-      "seq": 2,
-      "from": "taizi",
-      "to": "zhongshu",
-      "actor": "taizi-agent",
-      "reason": "判断为重要任务，需要规划",
-      "ts": "2026-03-24T10:05:00Z"
-    },
-    {
-      "seq": 3,
-      "from": "menxia",
-      "to": "zhongshu",
-      "actor": "menxia-agent",
-      "reason": "封驳：未包含 SQL 注入防护，请补充安全设计",
-      "ts": "2026-03-24T11:00:00Z"
-    },
-    {
-      "seq": 4,
-      "from": "menxia",
-      "to": "assigned",
-      "actor": "menxia-agent",
-      "reason": "准奏：方案完整，安全措施已补充",
-      "ts": "2026-03-24T12:00:00Z"
-    }
-  ],
-
-  "plan": { "steps": [...], "review_rounds": 2 },
-  "assignments": { "bingbu": [...], "xingbu": [...] },
-  "results": { "status": "success", "artifacts": [...] }
-}`,
-          explanation: `
-            <strong>flow_log 的设计精髓：</strong><br>
-            • <strong>只追加、不可修改</strong>：seq 单调递增，是天然的篡改检测<br>
-            • 每条记录包含 from/to/actor/reason/ts，完整还原决策过程<br>
-            • 封驳记录（seq:3）清晰说明了"为什么封驳"——这是合规审计的核心<br>
-            • 可以完整"回放"任务的生命周期，定位任何历史问题
-          `
+          type: 'dialogue',
+          title: '🔍 任务状态莫名其妙跳回了"已完成"',
+          scenario: `<strong>故障场景</strong>：你的三省六部系统上线一周了。<br>
+今天早上，Dashboard 上出现了一个诡异的状态：<br><br>
+任务 #42 的 flow_log 显示：<br>
+<code style="background:rgba(0,0,0,.3);padding:4px 8px;border-radius:4px;display:inline-block">
+10:00 pending → 起草中<br>
+10:05 起草中 → 审核中<br>
+10:10 审核中 → 起草中（封驳）<br>
+10:15 起草中 → 审核中<br>
+10:20 审核中 → 已完成 ✅</code><br><br>
+问题：门下省第 2 轮审核的 flow_log 里，reason 写着"准奏：方案完整"。但你人工看了那个方案——它根本没改！还是被封驳的那个版本。<br><br>
+门下省第一次说"不行"，第二次对着完全相同的方案说"行"。这怎么可能？`,
+          steps: [
+            {
+              question: '门下省对着同一个方案，第一次封驳、第二次准奏。这不是审核标准不一致，而是并发竞态——两个请求同时修改了任务状态。怎么防止？',
+              opts: [
+                '让门下省的审核标准更严格',
+                '用锁机制（如 asyncio.Lock 或数据库乐观锁）保证状态转换是原子的——同一时刻只有一个操作能修改状态',
+                '串行处理所有任务',
+                '用更强的模型做审核'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！并发竞态是状态机的头号敌人。两个请求同时读到"审核中"，都以为自己是第一个，都去改状态。锁机制保证"检查 + 修改"是一个不可分割的原子操作。',
+              aria_wrong: '❌ 不是审核标准的问题——方案完全相同！想想：如果两个请求同时到达，都读到当前状态是"审核中"，会发生什么？'
+            },
+            {
+              question: '你加了锁，并发问题解决了。但产品经理问："这个任务第 10:05 的封驳，具体是谁触发的？当时的原因是什么？" 你的 flow_log 需要记录哪些信息？',
+              opts: [
+                '只记录状态变化：从 A 到 B',
+                '每次状态变化记录：from → to + 谁（actor）+ 为什么（reason）+ 什么时间（timestamp）——完整还原决策过程',
+                '记录所有 Agent 的对话内容',
+                '只记录错误'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！from/to/actor/reason/timestamp 是审计日志的五要素。少了任何一个，你就无法完整还原"当时发生了什么"。这就是 EDICT 的 flow_log 设计。',
+              aria_wrong: '❌ 只记"从 A 到 B"不够——你不知道谁改的、为什么改。想想：如果你是审计员，你需要什么信息来判断"这次状态变化是否合理"？'
+            },
+            {
+              question: 'flow_log 是审计的基础。但如果有人（或某个有 bug 的 Agent）修改了历史记录呢？你怎么保证日志的"不可篡改性"？',
+              opts: [
+                '定期备份日志',
+                'append-only（只追加不修改）——日志只能写入新记录，禁止 UPDATE 和 DELETE。任何篡改都会留下痕迹或直接被拒绝',
+                '用区块链存日志',
+                '信任系统不会出错'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！Append-only 是审计日志的铁律。数据库层禁止 UPDATE/DELETE，代码层只能 INSERT。配合单调递增的 seq 编号，任何篡改都会破坏连续性被立刻发现。',
+              aria_wrong: '❌ 备份不能防篡改——备份也可以被改。想想：如果数据库层面就禁止修改已有记录，只允许添加新记录，篡改还有可能吗？',
+              reveal_on_correct: `<strong>状态机的三大生产保障</strong>：<br>1. <strong>原子性</strong>：锁机制保证状态转换不被并发干扰<br>2. <strong>可审计</strong>：flow_log 记录 from/to/actor/reason/timestamp<br>3. <strong>不可篡改</strong>：append-only 日志，禁止修改历史<br><br>缺少任何一层，状态机在生产环境都是不安全的。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你设计出了生产级状态机的安全机制！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">原子性 + 可审计 + 不可篡改 = 状态机的三个安全支柱。<br>没有这些，状态机就是一个"看起来对但实际不靠谱"的系统。</div>`
         },
         {
           type: 'concept',
-          title: '🖥️ 为什么状态机必须配合 Dashboard？',
+          title: '📄 你刚才设计的，就是 EDICT 的状态机 + flow_log 架构',
           html: `
-            <p><strong>黑盒 vs 白盒：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(239,68,68,.05);border-left:3px solid var(--red);line-height:1.8">
-              <strong>传统 Multi-Agent（黑盒）：</strong><br>
-              你提交任务 → 等待 → 得到结果<br>
-              中间发生了什么？你不知道。<br>
-              出错了怎么定位？不知道。<br>
-              能不能中途干预？不能。
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">EDICT 状态机 + 审计日志</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">生产级状态机的核心：原子转换 + append-only 日志 + Event Bus 联动</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的三层保障，正是 EDICT 状态机区别于 demo 级实现的核心！</span>
             </div>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.05);border-left:3px solid var(--cyan);line-height:1.8">
-              <strong>三省六部 + Dashboard（白盒）：</strong><br>
-              实时看到每个 Agent 的"思考"（Thoughts）<br>
-              实时看到任务状态流转（State Flow）<br>
-              实时看到各部门的待办（Todos）<br>
-              可以随时叫停（Cancel）、恢复（Resume）<br>
-              flow_log 提供完整的事后审计
-            </div>
-            <div style="margin:14px 0;padding:14px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px">
-              💡 <strong>EDICT 的三层可观测性数据：</strong><br>
-              1. <strong>Thoughts</strong>：Agent 的实时思考流（流式输出）<br>
-              2. <strong>Todos</strong>：每个 Agent 的任务清单（结构化）<br>
-              3. <strong>Events</strong>：状态变更事件（用于 Dashboard 推送）
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">真实 flow_log 示例</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px;font-family:monospace;font-size:.85rem">
+                  seq:1 | pending → taizi | actor:system | "用户提交任务"<br>
+                  seq:2 | taizi → zhongshu | actor:taizi-agent | "判断为重要任务"<br>
+                  seq:3 | menxia → zhongshu | actor:menxia-agent | "封驳：未包含 SQL 注入防护"<br>
+                  seq:4 | menxia → assigned | actor:menxia-agent | "准奏：方案完整，安全已补充"
+                </div>
+              </div>
+              <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,.1);border-radius:8px;font-size:.9rem">
+                💡 seq:3 的封驳记录清晰说明了"为什么封驳"——这是合规审计的核心。任何人都可以验证决策过程的合理性。
+              </div>
             </div>
           `
-        },
-        {
-          type: 'pitfalls',
-          title: '🔥 分布式状态机的深层问题',
-          items: [
-            '乐观锁（Optimistic Lock）：数据库用 version 字段，UPDATE WHERE version=old_version，失败则重试，防止并发写冲突',
-            '幂等性（Idempotency）：同一个 transition 请求可能因网络重试被执行多次——用 event_id 去重，保证状态机最终一致',
-            '超时与补偿：Agent 执行超时怎么办？EDICT 用 Saga 模式，超时后触发补偿事务回滚到安全状态',
-            '状态爆炸：复杂业务可能导致状态数量爆炸——用层次状态机（HSM）或正交状态机拆分，保持可维护性',
-            'flow_log 的不可变性：在分布式系统中，用 append-only 数据结构（如 Kafka topic 或 immutable DB table）保证日志无法被篡改'
-          ]
         },
         {
           type: 'quiz',
           q: 'EDICT 的 flow_log 为什么设计成"只追加、不可修改"？',
           opts: [
             '因为数据库性能更好',
-            '保证审计合规：任何决策（包括封驳）都有完整记录，无法事后篡改',
+            '保证审计合规：任何决策都有完整记录，无法事后篡改',
             '因为代码更简单',
             '为了节省存储空间'
           ],
           ans: 1,
-          feedback_ok: '🔥 深刻理解！Append-only 的 flow_log 是信任的基础——你可以验证"门下省确实在时间 T 封驳了方案，原因是 X"，没有人能事后修改这条记录。这在合规审计、责任追溯、故障排查中至关重要。',
-          feedback_err: '核心在于"信任"和"合规"。如果 flow_log 可以修改，那审计就失去了意义——谁能保证记录没被篡改？Append-only 通过不可变性建立信任，这是 EDICT 的核心设计原则之一。'
+          feedback_ok: '🔥 正确！Append-only 的 flow_log 是信任的基础。你可以验证"门下省确实在时间 T 封驳了方案，原因是 X"，没有人能事后修改这条记录。这是合规审计和责任追溯的核心。',
+          feedback_err: '核心是"信任"和"合规"。如果日志可以修改，审计就失去了意义。Append-only 通过不可变性建立信任。'
         }
       ]
     }

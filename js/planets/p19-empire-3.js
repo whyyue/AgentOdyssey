@@ -289,202 +289,96 @@ async def on_websocket_connect(websocket, task_id: str):
     hell: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔥 地狱模式 - EDICT 可观测性架构</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：生产级的事件驱动系统远比示例复杂。<br><br>
-              EDICT 的可观测性分三层：<br>
-              • <strong>Thoughts</strong>：Agent 实时思考流（流式 SSE）<br>
-              • <strong>Todos</strong>：结构化任务列表（增量更新）<br>
-              • <strong>Events</strong>：状态变更日志（WebSocket 推送）<br><br>
-              三层数据，三种传输协议，一个统一的 Dashboard。
-            </div>
-          `
+          type: 'dialogue',
+          title: '🔍 "我的任务跑到哪一步了？" ——你答不上来',
+          scenario: `<strong>故障场景</strong>：你把三省六部系统部署上线了。<br>
+用户提交了一个复杂任务，系统开始执行。30 分钟后，用户打来电话：<br><br>
+<strong>用户："我的任务跑到哪一步了？"</strong><br>
+你看了后台日志——一堆 JSON 混在一起，看不出当前状态。<br><br>
+<strong>用户："门下省在审核什么？它想说什么？"</strong><br>
+你看不到 Agent 的思考过程。<br><br>
+<strong>用户："我觉得方向不对，能停下来吗？"</strong><br>
+系统没有暂停功能。<br><br>
+<strong>用户："昨天的那个任务，最终方案是什么？给我看看。"</strong><br>
+历史记录没有保存完整。<br><br>
+四个问题，你一个都答不上来。你的系统是一个<strong>黑盒</strong>。`,
+          steps: [
+            {
+              question: '用户问"任务跑到哪了？"——你需要看到什么？Agent 的实时思考（正在想什么）+ 任务状态（在哪个步骤）+ 待办清单（每个部门在做什么）。你需要什么技术来实现？',
+              opts: [
+                '把所有信息打印到控制台',
+                '实时推送——Agent 每产生一个 token 就推送到前端，配合结构化的任务状态和待办列表，通过 WebSocket/SSE 实时更新',
+                '每次操作后发邮件通知',
+                '让用户看后台日志'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！实时推送 + 结构化数据 = 白盒系统。Agent 的思考用 SSE 流式推送（像 ChatGPT），任务状态和待办用 WebSocket 推送。用户可以实时看到"每个 Agent 在想什么、做什么"。',
+              aria_wrong: '❌ 打印到控制台和发日志都不够实时、不够结构化。想想：ChatGPT 是怎么让你看到它"一个字一个字地生成"的？那种技术叫什么？'
+            },
+            {
+              question: '你想让用户看到 Agent 的思考过程。Agent 每个 token 都要推送，高频且单向。用什么协议最合适？',
+              opts: [
+                'REST API 轮询',
+                'WebSocket（双向通信）',
+                'SSE（Server-Sent Events）——单向推送、HTTP/2 原生支持、自动重连、CDN 友好，最适合高频单向流',
+                'gRPC'
+              ],
+              correct: 2,
+              aria_correct: '✅ 正确！SSE 天然适合"服务器→客户端"的单向高频流。思考过程只需要推送，不需要客户端发指令。比 WebSocket 更简单、更标准。WebSocket 留给需要双向通信的场景（如用户发送"暂停"指令）。',
+              aria_wrong: '❌ 思考过程是单向推送——服务器推给客户端，客户端不需要发数据。WebSocket 的双向能力在这里是浪费。有没有更简单的单向推送协议？'
+            },
+            {
+              question: '用户说"昨天的任务，门下省封驳了什么？给我看完整记录。" 你的事件日志需要什么能力？',
+              opts: [
+                '只保存最近 24 小时的日志',
+                'append-only 事件存储 + 按任务 ID 回放——支持从任意时间点回查完整的事件历史',
+                '保存到 Excel 表格',
+                '让用户自己截图保存'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！按任务 ID 查询 + 时间线回放 = 完整的历史审计能力。用户可以看到"任务从创建到完成"的每一步，包括每次封驳的原因和时间戳。',
+              aria_wrong: '❌ 只保留 24 小时不够——用户问的是"昨天"的。你需要的是按任务 ID 组织的持久化存储，支持从任意时间点回查。这不就是"事件回放"吗？',
+              reveal_on_correct: `<strong>三层可观测性</strong>：<br>1. <strong>Thoughts</strong>（思考流）：SSE 流式推送，Agent 的实时思考过程<br>2. <strong>Todos</strong>（待办列表）：WebSocket 结构化推送，每个部门的任务状态<br>3. <strong>Events</strong>（状态事件）：append-only 存储，完整的历史审计<br><br>三种数据、三种协议、一个统一的 Dashboard。这就是从"黑盒"变成"白盒"的技术架构。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你设计出了从黑盒到白盒的可观测性架构！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">思考流 + 待办列表 + 状态事件 = 三层可观测性。<br>不可观测的系统不可信赖，不可信赖的系统不可上线。</div>`
         },
         {
           type: 'concept',
-          title: '🔭 三层可观测性数据',
+          title: '📄 你刚才设计的，就是 EDICT 的 Dashboard 数据架构',
           html: `
-            <div style="margin:14px 0">
-              <p><strong>第一层：Thoughts（思考流）</strong></p>
-              <div style="padding:12px;background:rgba(0,229,255,.05);border-left:3px solid var(--cyan);border-radius:8px;margin-bottom:12px;font-size:.9rem;line-height:1.7">
-                Agent 在"思考"时的实时输出，类似 ChatGPT 的流式回复。<br>
-                技术：<strong>Server-Sent Events (SSE)</strong> 或 WebSocket 流<br>
-                特点：字符级推送，延迟 &lt; 50ms<br>
-                用途：让用户看到 Agent 在"想什么"，不是黑盒
-              </div>
-
-              <p><strong>第二层：Todos（任务列表）</strong></p>
-              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px;margin-bottom:12px;font-size:.9rem;line-height:1.7">
-                每个 Agent 的结构化待办事项，格式化展示进度。<br>
-                技术：<strong>WebSocket + 增量 patch</strong><br>
-                特点：结构化数据，支持嵌套子任务<br>
-                用途：让用户看到"做了什么"，类似 Claude Code 的 TodoList
-              </div>
-
-              <p><strong>第三层：Events（状态事件）</strong></p>
-              <div style="padding:12px;background:rgba(239,68,68,.05);border-left:3px solid var(--red);border-radius:8px;font-size:.9rem;line-height:1.7">
-                任务状态机的变更事件，驱动 Dashboard 状态更新。<br>
-                技术：<strong>WebSocket + append-only 事件流</strong><br>
-                特点：不可变日志，支持时间线回放<br>
-                用途：审计、调试、故障排查
-              </div>
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">EDICT Dashboard：三种协议的分工</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">SSE 推思考、WebSocket 推状态、REST 初始化——各取所长</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的"三种数据用三种协议"正是 EDICT Dashboard 的真实架构！</span>
             </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '⚡ 生产级 Event Store（Append-Only）',
-          code: `import aiosqlite
-from typing import AsyncIterator
 
-class EventStore:
-    """Append-Only 事件存储，基于 SQLite（生产用 PostgreSQL/Kafka）"""
-
-    async def append(self, event: Event) -> None:
-        """写入事件（只追加，不更新不删除）"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
-                INSERT INTO events
-                    (event_id, trace_id, topic, producer,
-                     payload, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                event.event_id, event.trace_id, event.topic,
-                event.producer, json.dumps(event.payload),
-                event.timestamp
-            ))
-            await db.commit()
-
-    async def replay(self, trace_id: str,
-                     since: str = None) -> AsyncIterator[Event]:
-        """按 trace_id 回放事件，支持从指定时间点开始"""
-        query = """
-            SELECT * FROM events WHERE trace_id = ?
-            {} ORDER BY rowid ASC
-        """.format("AND timestamp > ?" if since else "")
-
-        params = (trace_id, since) if since else (trace_id,)
-        async with aiosqlite.connect(self.db_path) as db:
-            async for row in await db.execute(query, params):
-                yield Event.from_row(row)
-
-    async def tail(self, trace_id: str) -> AsyncIterator[Event]:
-        """实时订阅新事件（长轮询模式，生产用 Kafka consumer）"""
-        last_rowid = 0
-        while True:
-            events = await self._fetch_after(trace_id, last_rowid)
-            for event in events:
-                last_rowid = event.rowid
-                yield event
-            if not events:
-                await asyncio.sleep(0.1)  # 100ms 轮询间隔`,
-          explanation: `
-            <strong>Append-Only 的工程实践：</strong><br>
-            • 数据库层：禁止 UPDATE/DELETE，只允许 INSERT<br>
-            • <code>rowid</code>：SQLite 自带单调递增 ID，是天然的顺序保证<br>
-            • <code>replay()</code>：支持从任意时间点回放，用于页面刷新和调试<br>
-            • 生产环境用 <strong>Kafka</strong>：天然 append-only，分区并行，Consumer Group 隔离<br>
-            • <code>tail()</code> 模拟 Kafka Consumer 的 long-poll 模式
-          `
-        },
-        {
-          type: 'code',
-          title: '🌊 Thoughts 流式推送（SSE + 增量）',
-          code: `from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-import asyncio
-
-app = FastAPI()
-
-@app.get("/tasks/{task_id}/thoughts/stream")
-async def stream_thoughts(task_id: str):
-    """Server-Sent Events 流式推送 Agent 思考过程"""
-
-    async def generator():
-        # 1. 先推送历史 thoughts
-        history = await thought_store.get_history(task_id)
-        for chunk in history:
-            yield f"data: {json.dumps(chunk)}\n\n"
-
-        # 2. 实时推送新 thoughts
-        async for chunk in thought_bus.subscribe(task_id):
-            yield f"data: {json.dumps(chunk)}\n\n"
-
-            # SSE 心跳，防止连接超时
-            if chunk.get("type") == "heartbeat":
-                yield ": heartbeat\n\n"
-
-    return StreamingResponse(
-        generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no"  # 禁用 Nginx 缓冲
-        }
-    )
-
-# Agent 发布 thought（每个 token 一条）
-async def publish_thought(task_id: str, token: str, agent: str):
-    chunk = {
-        "type":    "thought.token",
-        "agent":   agent,
-        "content": token,
-        "ts":      datetime.utcnow().isoformat()
-    }
-    await thought_store.append(task_id, chunk)  # 持久化
-    await thought_bus.broadcast(task_id, chunk)  # 推送`,
-          explanation: `
-            <strong>流式架构关键点：</strong><br>
-            • <strong>SSE vs WebSocket</strong>：Thoughts 用 SSE（单向推送更简单），状态事件用 WebSocket（双向）<br>
-            • <code>X-Accel-Buffering: no</code>：必须禁用 Nginx/CDN 缓冲，否则字符流会积攒后一次性发送<br>
-            • token 级粒度：每个 LLM 输出的 token 立即推送，用户感知延迟 &lt; 100ms<br>
-            • 历史回放 + 实时流：刷新页面后立即看到完整历史，然后无缝衔接实时流
-          `
-        },
-        {
-          type: 'concept',
-          title: '📐 EDICT Dashboard 数据架构',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-family:monospace;font-size:.85rem;line-height:1.8">
-              <strong>前端 Dashboard 数据流：</strong><br><br>
-
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9;font-family:monospace;font-size:.85rem">
+              <strong style="color:var(--cyan)">前端 Dashboard 数据流：</strong><br><br>
               WebSocket /ws/{task_id}<br>
               &nbsp;&nbsp;├─ task.state.* → 更新状态流转图<br>
               &nbsp;&nbsp;├─ agent.todo.update → 更新各部门 TodoList<br>
               &nbsp;&nbsp;└─ agent.progress → 更新进度条<br><br>
-
               SSE /tasks/{id}/thoughts/stream<br>
               &nbsp;&nbsp;└─ thought.token → 流式渲染 Agent 思考<br><br>
-
               REST GET /tasks/{id}<br>
-              &nbsp;&nbsp;└─ 页面加载时获取完整快照<br><br>
-
-              <strong>三种协议分工：</strong><br>
-              • REST：页面初始化，获取完整状态<br>
-              • WebSocket：结构化事件，双向通信<br>
-              • SSE：流式文本，单向高频推送
-            </div>
-            <div style="margin-top:16px;padding:12px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
-              💡 <strong>为什么不全用 WebSocket？</strong><br>
-              SSE 更简单、HTTP/2 原生支持、自动重连、CDN 友好。<br>
-              流式文本用 SSE，结构化事件用 WebSocket，各取所长。
+              &nbsp;&nbsp;└─ 页面加载时获取完整快照
             </div>
           `
         },
         {
           type: 'quiz',
-          q: 'EDICT 用 SSE（Server-Sent Events）推送 Agent 思考流，而不是 WebSocket，核心原因是什么？',
+          q: 'EDICT 用 SSE 推送 Agent 思考流、用 WebSocket 推送状态事件，核心原因是什么？',
           opts: [
             'SSE 性能比 WebSocket 更高',
-            'Thoughts 是单向推送，SSE 更简单且 HTTP/2 原生支持；WebSocket 的双向能力此处用不到',
+            '思考流是单向推送（SSE 更简单），状态事件需要双向通信（如发送暂停指令，用 WebSocket）——根据需求选最合适的协议',
             'WebSocket 不支持流式文本',
-            'SSE 延迟更低'
+            '为了用两种技术显得更专业'
           ],
           ans: 1,
-          feedback_ok: '🔥 精准！技术选型要看需求：Thoughts 只需要"服务器→客户端"单向推送，SSE 天然适合；状态事件需要双向通信（客户端可以发送控制指令），所以用 WebSocket。用最简单的工具解决问题，这是工程实践的核心原则。',
-          feedback_err: '关键在于"单向 vs 双向"。Thoughts 流只需要服务器推给客户端，SSE 完全够用，而且比 WebSocket 更简单、更标准。WebSocket 留给需要双向通信的场景（如客户端发送取消指令）。'
+          feedback_ok: '🔥 精准！技术选型要看需求：单向推送用最简单的工具（SSE），双向通信用能力匹配的工具（WebSocket）。用最简单的方案解决问题，这是工程的核心原则。',
+          feedback_err: '关键在于"单向 vs 双向"。思考流只需要服务器→客户端，SSE 更简单。状态事件需要客户端也能发指令（暂停、恢复），所以用 WebSocket。'
         }
       ]
     }

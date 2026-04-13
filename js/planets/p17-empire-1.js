@@ -225,232 +225,129 @@ PLANETS.push({
     hell: {
       sections: [
         {
-          type: 'story',
+          type: 'dialogue',
+          title: '🔍 12 个 Agent 协作，为什么产出了垃圾结果？',
+          scenario: `<strong>故障场景</strong>：你用 CrewAI 搭了一个 12 Agent 协作系统，任务是"为公司设计一个新产品的市场推广方案"。<br><br>
+系统运行了 20 分钟，消耗了 $30 的 API 费用。最终输出是一份"方案"：<br>
+• 第 1 段是市场分析，数据全部是编造的<br>
+• 第 2 段是技术方案，写了一堆不存在的功能<br>
+• 第 3 段是预算表，数字之间逻辑矛盾<br>
+• 第 4 段是时间线，完全不可执行<br><br>
+12 个 Agent 都"完成了任务"，但结果是一堆漂亮包装的垃圾。<br>
+没有任何一个 Agent 检查过其他 Agent 的输出是否正确。`,
+          steps: [
+            {
+              question: '12 个 Agent 都完成了任务，但结果是垃圾。最根本的问题是什么？',
+              opts: [
+                'Agent 数量不够，需要更多',
+                '没有质量控制机制——Agent 做完就交，没有人检查输出是否正确。就像一个没有 QA 的开发团队',
+                '模型版本太旧',
+                '任务太复杂，不应该用 AI'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！传统 Multi-Agent 框架（CrewAI/AutoGen）的核心缺陷：Agent 做完就交，没有审核。就像公司没有 QA 部门，工程师写完代码直接上线——结果可想而知。',
+              aria_wrong: '❌ 12 个 Agent 已经够多了。问题是：它们之间有"互相检查"的机制吗？做完就交，谁在把关？'
+            },
+            {
+              question: '你需要加一个"审核 Agent"。但问题来了：如果审核 Agent 也是 LLM，它怎么保证不会和执行 Agent 犯同样的错（比如一起编造数据）？',
+              opts: [
+                '用更强的模型做审核',
+                '审核 Agent 必须从不同角度、用不同标准检查——关注"事实是否有来源""数据是否自洽""方案是否可执行"，而不是"看起来好不好"',
+                '让人类做所有审核',
+                '加更多审核 Agent，三个审核员比一个好'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！关键不是"更强的模型"，而是"不同的审查维度"。执行 Agent 关注"把方案写出来"，审核 Agent 关注"方案有没有问题"——目标不同，行为不同，才是制衡。就像中书省写方案、门下省审核方案，职责不同。',
+              aria_wrong: '❌ 更强的模型也会犯同样的错——它们都是 LLM。关键在于"审核的视角"：执行 Agent 想"怎么写好"，审核 Agent 应该想"哪里有问题"。这需要什么？不同的目标和标准。'
+            },
+            {
+              question: '你加了审核 Agent，它封驳了执行 Agent 的方案。执行 Agent 修改后重新提交，又被封驳。这样反复了 10 轮还没结束。怎么防止这种死循环？',
+              opts: [
+                '让审核 Agent 放宽标准',
+                '设置审核上限（如 3 轮）——超过后强制升级给人类处理，而不是让两个 AI 无限循环',
+                '让执行 Agent 第一次就做对',
+                '删掉审核 Agent'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！审核上限 = 防止死循环的安全阀。3 轮不过就找人类，这比两个 AI 无限互相"抬杠"更高效。唐朝三省六部的门下省也是这样设计的——封驳有次数限制，不可能无限循环。',
+              aria_wrong: '❌ 放宽标准等于没有审核。让 AI 第一次就做对也不现实。想想：如果两个 AI 一直达不成一致，你需要什么机制来"打破僵局"？',
+              reveal_on_correct: `<strong>制度化协作的三层设计</strong>：<br>1. <strong>权限矩阵</strong>：谁能调用谁，防止越级和死循环<br>2. <strong>强制审核</strong>：不是可选的插件，而是必须经过的质量关卡<br>3. <strong>审核上限 + 人工升级</strong>：3 轮不过找人类，打破 AI 无限循环<br><br>这就是唐朝三省六部的设计：中书省拟方案 → 门下省审核（可封驳）→ 尚书省执行。1300 年前的制度设计，今天用在 AI 协作上依然有效。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你推导出了制度化协作的核心设计！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">权限控制 + 强制审核 + 审核上限 = 防止 AI 协作产出垃圾的制度保障。<br>没有这些机制，Agent 越多，垃圾越多。</div>`
+        },
+        {
+          type: 'concept',
+          title: '📄 你刚才设计的，就是 EDICT 项目的三省六部架构',
           html: `
-            <div class="speaker">🔥 地狱模式 - EDICT 架构深度解析</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，让我带你深入 EDICT 项目的核心设计！
-              这是一个真实的生产级 Multi-Agent 系统。<br><br>
-              <strong>EDICT 项目</strong><br>
-              • GitHub: cft0808/edict<br>
-              • 12 个 Agent 协作<br>
-              • 实时 Dashboard 看板<br>
-              • Event-Driven 架构<br>
-              • 完整的审计日志
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">EDICT：基于三省六部的 Multi-Agent 系统</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">12 个 Agent 协作 · Event-Driven 架构 · 实时 Dashboard · 完整审计日志</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的三层设计——权限矩阵、强制审核、审核上限——正是 EDICT 的核心架构！</span>
+            </div>
+
+            <div style="margin:20px 0;padding:16px;background:rgba(0,229,255,.06);border-radius:12px;line-height:1.9">
+              <strong style="color:var(--cyan)">三省六部的角色映射</strong><br><br>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>太子（Orchestrator）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">接收用户任务<br>判断任务类型和优先级<br>分配给中书省</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>中书省（Planner）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">制定执行方案<br>分解子任务<br>最多修改 3 轮</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>门下省（Reviewer）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">审核方案质量<br>可行封驳、打回重做<br>最多审核 3 轮</span>
+                </div>
+                <div style="padding:12px;background:rgba(0,0,0,.2);border-radius:8px">
+                  <strong>尚书省 → 六部（Executor）</strong><br>
+                  <span style="font-size:.9rem;color:var(--muted)">执行具体任务<br>六部各司其职<br>输出最终结果</span>
+                </div>
+              </div>
             </div>
           `
         },
         {
           type: 'concept',
-          title: '🎯 设计哲学：为什么需要制度化？',
+          title: '🚀 制度化 AI 协作 vs 自由协作（2024→2026）',
           html: `
-            <p><strong>传统 Multi-Agent 框架的问题：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(239,68,68,.05);border-left:3px solid var(--red);line-height:1.8">
-              <strong>CrewAI / AutoGen 的模式：</strong><br>
-              "来，你们几个 AI 自己聊，聊完把结果给我。"<br><br>
-
-              <strong>问题：</strong><br>
-              • Agent 可能相互制造假数据<br>
-              • 没有质量控制机制<br>
-              • 无法审计和回溯<br>
-              • 不能实时干预<br>
-              • 结果不可靠
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="padding:12px;background:rgba(168,85,247,.08);border-left:3px solid var(--purple);border-radius:8px">
+                <strong>2023 · 自由协作时代（CrewAI/AutoGen）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">Agent 自由对话、自行分工。简单任务效果好，复杂任务经常跑偏、产出不可控。没有审核、没有审计、没有干预能力。</span>
+              </div>
+              <div style="padding:12px;background:rgba(0,229,255,.08);border-left:3px solid var(--cyan);border-radius:8px">
+                <strong>2024 · 制度化协作出现（EDICT/MetaGPT）</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">引入权限矩阵、强制审核、状态机、审计日志。Agent 协作从"自由市场"变成"制度化的组织"。输出质量显著提升，但架构复杂度也增加。</span>
+              </div>
+              <div style="padding:12px;background:rgba(16,185,129,.08);border-left:3px solid var(--green);border-radius:8px">
+                <strong>2025 · 混合模式</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">简单任务用自由协作（快），复杂任务用制度化协作（稳）。根据任务复杂度自动切换模式。EDICT 的太子 Agent 就是在做这种判断。</span>
+              </div>
+              <div style="padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px">
+                <strong>2025-2026 · 模型原生协作</strong><br>
+                <span style="color:var(--muted);font-size:.9rem">模型越来越强，很多需要制度约束的问题在模型层面被解决。但"审核"和"审计"作为制度性保障，即使在模型很强的未来也不会消失——就像人类社会再发达也需要审计。</span>
+              </div>
             </div>
-
-            <p style="margin-top:16px"><strong>三省六部的解决方案：</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.05);border-left:3px solid var(--cyan);line-height:1.8">
-              <strong>制度化协作：</strong><br>
-              • 严格的权限矩阵：谁能调用谁<br>
-              • 强制审核关卡：门下省封驳<br>
-              • 完全可观测：实时看板<br>
-              • 可干预：随时叫停/取消/恢复<br>
-              • 可审计：完整的流转记录
-            </div>
-          `
-        },
-        {
-          type: 'concept',
-          title: '🔐 权限矩阵设计',
-          html: `
-            <p>严格的调用权限控制：</p>
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-family:monospace;font-size:.85rem;line-height:1.8">
-              <strong>权限矩阵：</strong><br>
-              • 太子 → 只能调用中书省<br>
-              • 中书省 → 只能调用门下省、尚书省<br>
-              • 门下省 → 可以调用尚书省、回调中书省<br>
-              • 尚书省 → 只能调用六部<br>
-              • 六部 → 不能调用其他 Agent<br><br>
-
-              <strong>为什么这样设计？</strong><br>
-              1. 防止越级：保证流程有序<br>
-              2. 防止循环：避免死锁<br>
-              3. 职责清晰：每个角色知道该找谁<br>
-              4. 可追溯：调用链完整记录
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '🔧 权限矩阵实现',
-          code: `# 权限矩阵定义
-PERMISSION_MATRIX = {
-    'taizi': ['zhongshu'],
-    'zhongshu': ['menxia', 'shangshu'],
-    'menxia': ['shangshu', 'zhongshu'],  # 可封驳
-    'shangshu': ['libu', 'hubu', 'bingbu',
-                 'xingbu', 'gongbu', 'libu_hr'],
-    # 六部不能调用其他 Agent
-}
-
-def can_call(caller: str, callee: str) -> bool:
-    """检查调用权限"""
-    return callee in PERMISSION_MATRIX.get(caller, [])
-
-class Agent:
-    def __init__(self, name: str):
-        self.name = name
-
-    async def call_subagent(self, target: str, task):
-        # 权限检查
-        if not can_call(self.name, target):
-            raise PermissionError(
-                f"{self.name} 无权调用 {target}"
-            )
-
-        # 记录调用
-        log_call(self.name, target, task)
-
-        # 执行调用
-        return await agents[target].process(task)`,
-          explanation: `
-            <strong>关键设计：</strong><br>
-            • 白名单机制：只允许明确授权的调用<br>
-            • 运行时检查：每次调用都验证权限<br>
-            • 完整日志：记录所有调用链<br>
-            • 异常处理：越权调用直接拒绝
-          `
-        },
-        {
-          type: 'concept',
-          title: '🚫 门下省封驳机制',
-          html: `
-            <p><strong>这是三省六部的杀手锏！</strong></p>
-            <div style="margin:14px 0;padding:14px;background:rgba(239,68,68,.05);border-left:3px solid var(--red);line-height:1.8">
-              <strong>门下省的职责：</strong><br>
-              • 审查中书省的方案<br>
-              • 检查可行性、完整性、风险性<br>
-              • 不合格直接打回重做<br>
-              • 最多审核 3 轮<br><br>
-
-              <strong>为什么重要？</strong><br>
-              CrewAI 和 AutoGen 的 Agent 做完就交，没有人检查质量。<br>
-              就像公司没有 QA 部门，工程师写完代码直接上线。<br><br>
-
-              门下省是<strong>强制的质量关卡</strong>，不是可选的插件。<br>
-              每一个任务都必须经过门下省，没有例外。
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '✅ 门下省审核实现',
-          code: `class MenxiaAgent:
-    MAX_REVIEW_ROUNDS = 3
-
-    async def review_with_retry(self, plan):
-        """带重试的审核流程"""
-        for round_num in range(self.MAX_REVIEW_ROUNDS):
-            # 调用 LLM 审核
-            review = await self.review(plan)
-
-            if review.approved:
-                return plan  # 准奏
-
-            # 封驳：返回中书省修改
-            plan = await self.zhongshu.revise(
-                plan,
-                review.feedback
-            )
-
-        # 3 轮都不通过，升级处理
-        raise ReviewFailedException(
-            f"方案经过 {self.MAX_REVIEW_ROUNDS} 轮仍未通过"
-        )
-
-    async def review(self, plan):
-        prompt = f"""
-        审查方案：{plan.content}
-
-        从以下角度审查：
-        1. 可行性：方案是否可以执行？
-        2. 完整性：是否遗漏了重要步骤？
-        3. 风险性：是否有潜在风险？
-
-        如果合格，回复"准奏"。
-        如果不合格，说明原因并给出修改建议。
-        """
-        return await self.llm.call(prompt)`,
-          explanation: `
-            <strong>核心机制：</strong><br>
-            • 强制审核：不是可选的<br>
-            • 可封驳：有权打回重做<br>
-            • 有限重试：防止无限循环<br>
-            • 升级机制：3 轮不过通知人类
-          `
-        },
-        {
-          type: 'concept',
-          title: '📊 与其他框架的对比',
-          html: `
-            <table style="width:100%;border-collapse:collapse;margin:14px 0">
-              <tr style="background:rgba(0,229,255,.1)">
-                <th style="padding:8px;border:1px solid var(--border)">特性</th>
-                <th style="padding:8px;border:1px solid var(--border)">CrewAI</th>
-                <th style="padding:8px;border:1px solid var(--border)">AutoGen</th>
-                <th style="padding:8px;border:1px solid var(--border)">三省六部</th>
-              </tr>
-              <tr>
-                <td style="padding:8px;border:1px solid var(--border)">审核机制</td>
-                <td style="padding:8px;border:1px solid var(--border)">❌ 无</td>
-                <td style="padding:8px;border:1px solid var(--border)">⚠️ 可选</td>
-                <td style="padding:8px;border:1px solid var(--border)">✅ 强制</td>
-              </tr>
-              <tr>
-                <td style="padding:8px;border:1px solid var(--border)">实时看板</td>
-                <td style="padding:8px;border:1px solid var(--border)">❌</td>
-                <td style="padding:8px;border:1px solid var(--border)">❌</td>
-                <td style="padding:8px;border:1px solid var(--border)">✅</td>
-              </tr>
-              <tr>
-                <td style="padding:8px;border:1px solid var(--border)">任务干预</td>
-                <td style="padding:8px;border:1px solid var(--border)">❌</td>
-                <td style="padding:8px;border:1px solid var(--border)">❌</td>
-                <td style="padding:8px;border:1px solid var(--border)">✅</td>
-              </tr>
-              <tr>
-                <td style="padding:8px;border:1px solid var(--border)">流转审计</td>
-                <td style="padding:8px;border:1px solid var(--border)">⚠️</td>
-                <td style="padding:8px;border:1px solid var(--border)">❌</td>
-                <td style="padding:8px;border:1px solid var(--border)">✅</td>
-              </tr>
-            </table>
-            <p style="margin-top:12px;font-size:.9rem;color:var(--muted)">
-              核心差异：<strong>制度性审核 + 完全可观测 + 实时可干预</strong>
-            </p>
           `
         },
         {
           type: 'quiz',
-          q: '为什么三省六部要限制门下省审核最多 3 轮？',
+          q: '为什么三省六部架构要限制门下省审核最多 3 轮？',
           opts: [
             '为了节省计算资源',
-            '防止中书省和门下省陷入无限循环',
+            '防止中书省和门下省陷入无限封驳循环——3 轮不过就升级给人类处理',
             '因为 3 是个吉利数字',
             '为了加快处理速度'
           ],
           ans: 1,
-          feedback_ok: '🔥 完全正确！如果不限制轮数，中书省和门下省可能陷入死循环：中书提方案 → 门下封驳 → 中书修改 → 门下再封驳……永远结束不了。3 轮是一个合理的平衡点。',
-          feedback_err: '关键在于"防止死循环"！如果没有限制，两个 Agent 可能永远达不成一致。3 轮后如果还不通过，就需要人工介入了。'
+          feedback_ok: '🔥 正确！没有上限 = 潜在的死循环。中书省提方案 → 门下省封驳 → 中书省修改 → 门下省再封驳……3 轮是合理的平衡：给 AI 足够的改进机会，但也设定了明确的终止条件。',
+          feedback_err: '核心是"防止死循环"。两个 AI 可能永远达不成一致。3 轮是安全阀——超过后升级给人类，打破 AI 的无限循环。'
         }
       ]
     }

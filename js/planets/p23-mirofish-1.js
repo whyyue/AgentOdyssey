@@ -455,254 +455,82 @@ at line 4: return { entities }`,
     hell: {
       sections: [
         {
-          type: 'story',
-          html: `
-            <div class="speaker">🔥 地狱模式 - GraphRAG 深度解析</div>
-            <div class="chat-bubble robot" style="border-color:var(--red)">
-              🤖 ARIA：船长，准备好了吗？<br>
-              我们要深入 GraphRAG 的核心——<br>
-              <strong>微软 2024 年发布的革命性论文</strong>！<br><br>
-
-              这篇论文解决了一个困扰 RAG 系统多年的问题：<br>
-              <strong>如何回答需要"全局理解"的问题？</strong><br><br>
-
-              传统 RAG 只能回答局部问题（"张三是谁？"）<br>
-              GraphRAG 能回答全局问题（"这个事件的主要矛盾是什么？"）
-            </div>
-          `
+          type: 'dialogue',
+          title: '🔍 RAG 检索到了 100 篇文档，但答案还是错的',
+          scenario: `<strong>故障场景</strong>：你做了一个法律咨询 RAG 系统。用户问：<br><em>"A 公司和 B 公司的合同纠纷中，违约方的举证责任是什么？"</em><br><br>
+RAG 检索到了 50 篇相关文档片段。LLM 回答：<br><em>"根据合同法第 X 条，违约方需承担举证责任……"</em><br><br>
+律师看了后说："答案引用的法律条文是对的，但案例引用完全张冠李戴——它把 A 公司的合同条款嫁接到了 B 公司身上。"<br><br>
+问题：RAG 检索到的是"关键词匹配"的文档片段，它不理解"<strong>A 公司和B 公司之间的关系</strong>"——这是实体之间的结构关系，不是文本相似度。`,
+          steps: [
+            {
+              question: '传统 RAG 用文本相似度检索，但"谁和谁是合同关系"是实体之间的结构关系，不是文本片段能表达的。你需要什么来存储这种关系？',
+              opts: [
+                '更大的向量数据库',
+                '知识图谱——用节点存储实体（A 公司、B 公司），用边存储关系（"签了合同"、"违约方"），这种结构化存储天然适合表达"谁和谁有什么关系"',
+                '更长的 prompt',
+                '更多训练数据'
+              ],
+              correct: 1,
+              aria_correct: '✅ 对！文本相似度检索擅长"内容相关"，但不擅长"关系推理"。知识图谱用"实体+关系+实体"的三元组存储结构化信息，天然适合回答"谁和谁有什么关系"的问题。',
+              aria_wrong: '❌ 更大的向量数据库只是能存更多文档片段，但每个片段还是孤立的。问题不在于"数量"，而在于"结构"——你需要一种能表达"关系"的数据结构。'
+            },
+            {
+              question: '你有了知识图谱，但律师的文档有几万页，不可能手动建图谱。怎么自动化地从非结构化文本中提取实体和关系？',
+              opts: [
+                '雇佣大量标注员手动标注',
+                '用 LLM 从文本中提取实体和关系——给它一段法律文档，让它输出"（实体A, 关系, 实体B）"的三元组，然后写入图谱',
+                '只处理结构化数据',
+                '用正则表达式提取'
+              ],
+              correct: 1,
+              aria_correct: '✅ 正确！LLM 天然擅长从非结构化文本中提取结构化信息。给它法律文档，输出三元组，写入图谱。这就是 GraphRAG 的核心流程：文本 → LLM 提取 → 知识图谱 → 图谱检索 → LLM 生成答案。',
+              aria_wrong: '❌ 手动标注几万页文档不现实。正则表达式处理不了自然语言的复杂性。想想：谁最擅长"从文本中理解实体和关系"？'
+            },
+            {
+              question: '你同时有了向量检索（RAG）和图谱检索（GraphRAG）。用户问一个问题时，什么时候该用哪个？',
+              opts: [
+                '永远只用图谱',
+                '简单事实性问题用向量检索（快），关系推理问题用图谱检索（准），复杂问题两者结合',
+                '随机选一个',
+                '永远只用向量检索'
+              ],
+              correct: 1,
+              aria_correct: '✅ 完全正确！两种检索互补：向量检索擅长"找相关内容"，图谱检索擅长"推理关系"。2024 年微软的 GraphRAG 论文正是这个思路——先用向量检索缩小范围，再用图谱推理深层关系。',
+              aria_wrong: '❌ 两种方法各有所长。向量检索快但浅，图谱检索准但慢。复杂问题需要"先找相关内容，再推理关系"——两者结合才是最优解。',
+              reveal_on_correct: `<strong>GraphRAG 的三层架构</strong>：<br>1. <strong>实体提取</strong>：LLM 从文本中提取"实体+关系"三元组<br>2. <strong>图谱构建</strong>：三元组装入知识图谱，建立社区结构<br>3. <strong>混合检索</strong>：向量检索找相关内容 + 图谱检索推理关系<br><br>微软 2024 年的 GraphRAG 论文证明：在需要"综合多文档推理"的任务上，GraphRAG 比纯向量 RAG 准确率提升 40-60%。`
+            }
+          ],
+          completion_html: `<div style="color:var(--green);font-weight:700;padding:12px">✅ 你推导出了 GraphRAG 的核心设计！</div>
+<div style="color:var(--muted);font-size:.9rem;margin-top:8px">文本相似度检索的局限 → 知识图谱表达关系 → LLM 自动构建图谱 → 混合检索。<br>GraphRAG = 向量检索的广度 + 知识图谱的深度。</div>`
         },
         {
           type: 'concept',
-          title: '📄 论文核心：From Local to Global',
+          title: '📄 你刚才推导出的，2024 年微软把它写成了论文',
           html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>论文信息：</strong><br>
-              • 标题：From Local to Global: A Graph RAG Approach to Query-Focused Summarization<br>
-              • 作者：Microsoft Research（2024）<br>
-              • 核心贡献：提出基于社区检测的全局检索方法<br><br>
-
-              <strong>传统 RAG 的局限：</strong><br>
-              • 只能检索"相似"的文本块<br>
-              • 无法回答需要综合多个来源的问题<br>
-              • 例如："这份报告的主要主题是什么？"——需要看完整份报告才能回答<br><br>
-
-              <strong>GraphRAG 的创新：</strong><br>
-              • 构建实体关系图谱<br>
-              • 用社区检测算法（Leiden）将图谱分成多个"社区"<br>
-              • 为每个社区生成摘要<br>
-              • 查询时先检索相关社区，再检索具体实体
+            <div style="margin:14px 0;padding:16px;background:rgba(251,191,36,.1);border-left:3px solid var(--yellow);border-radius:12px;line-height:1.9">
+              <strong style="font-size:1.05rem">From Local to Global: A Graph RAG Approach to Query-Focused Summarization</strong><br>
+              <span style="color:var(--muted);font-size:.9rem">作者：Darren Edge 等（Microsoft Research）· 2024</span><br><br>
+              <span style="color:var(--cyan)">你刚才推导出的"向量检索+图谱检索"混合方案，正是这篇论文的核心贡献！</span>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:rgba(251,191,36,.1);border-radius:8px;font-size:.9rem">
+              💡 GraphRAG 在"需要综合多文档推理"的任务上，比纯向量 RAG 的全面性提升 40-60%。代价是构建图谱需要额外的 LLM 调用——成本和质量的权衡。
             </div>
           `
-        },
-        {
-          type: 'concept',
-          title: '🏘️ 社区检测（Community Detection）',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>什么是社区？</strong><br>
-              在知识图谱中，"社区"是一组紧密连接的实体。<br><br>
-
-              <strong>例子：武汉大学舆情图谱</strong><br>
-              • 社区 1：学生群体（学生会、班级、宿舍）<br>
-              • 社区 2：校方管理层（校长、教务处、保卫处）<br>
-              • 社区 3：媒体和舆论（记者、自媒体、网友）<br><br>
-
-              <strong>Leiden 算法：</strong><br>
-              • 一种图聚类算法<br>
-              • 自动识别图谱中的"社区"<br>
-              • 比传统的 Louvain 算法更准确<br>
-              • 时间复杂度：O(n log n)
-            </div>
-
-            <div style="margin-top:14px;padding:12px;background:rgba(251,191,36,.08);border-left:3px solid var(--yellow);border-radius:8px;font-size:.9rem">
-              💡 <strong>为什么需要社区？</strong><br>
-              当用户问"这个事件的主要矛盾是什么？"时，<br>
-              我们需要理解不同群体（社区）之间的冲突，<br>
-              而不是单个实体的信息！
-            </div>
-          `
-        },
-        {
-          type: 'code',
-          title: '💻 GraphRAG 的三层检索架构',
-          code: `# MiroFish 实现的三层检索工具
-
-# 1. QuickSearch - 快速检索（传统向量检索）
-def quick_search(query: str, graph_id: str) -> List[str]:
-    """
-    最快但最简单的检索
-    适用场景：简单的事实查询（"张三是谁？"）
-    """
-    results = zep.memory.search(
-        graph_id=graph_id,
-        query=query,
-        limit=10
-    )
-    return [r.content for r in results]
-
-
-# 2. PanoramaSearch - 全景搜索（图谱遍历）
-def panorama_search(query: str, graph_id: str) -> Dict:
-    """
-    遍历整个图谱，返回所有相关节点和边
-    适用场景：需要全局视角（"有哪些人参与了这个事件？"）
-    """
-    # 获取所有节点
-    all_nodes = zep.graph.nodes.list(graph_id=graph_id)
-
-    # 获取所有边
-    all_edges = zep.graph.edges.list(graph_id=graph_id)
-
-    # 过滤相关节点（基于语义相似度）
-    relevant_nodes = [
-        n for n in all_nodes
-        if semantic_similarity(query, n.summary) > 0.7
-    ]
-
-    return {
-        "nodes": relevant_nodes,
-        "edges": all_edges,
-        "total_nodes": len(all_nodes),
-        "relevant_nodes": len(relevant_nodes)
-    }
-
-
-# 3. InsightForge - 深度洞察（GraphRAG 核心）
-def insight_forge(query: str, graph_id: str,
-                  simulation_requirement: str) -> Dict:
-    """
-    最强大的检索工具，实现 GraphRAG 论文的核心思想
-    适用场景：复杂的分析问题（"这个事件的主要矛盾是什么？"）
-    """
-    # Step 1: 生成子问题
-    sub_queries = generate_sub_queries(query, simulation_requirement)
-
-    # Step 2: 对每个子问题进行多维度检索
-    results = {
-        "semantic_facts": [],      # 语义搜索结果
-        "entity_insights": [],     # 实体洞察
-        "relationship_chains": []  # 关系链
-    }
-
-    for sub_q in sub_queries:
-        # 2.1 语义搜索（向量检索）
-        semantic = zep.memory.search(graph_id, sub_q)
-        results["semantic_facts"].extend(semantic)
-
-        # 2.2 实体检索（图谱检索）
-        entities = zep.graph.nodes.search(graph_id, sub_q)
-        for entity in entities:
-            # 获取实体的所有关系
-            edges = zep.graph.edges.list(
-                graph_id=graph_id,
-                node_uuid=entity.uuid
-            )
-            results["entity_insights"].append({
-                "entity": entity,
-                "relations": edges
-            })
-
-        # 2.3 关系链检索（多跳查询）
-        chains = find_relationship_chains(
-            graph_id, sub_q, max_hops=3
-        )
-        results["relationship_chains"].extend(chains)
-
-    # Step 3: 综合分析
-    insights = synthesize_insights(results)
-
-    return insights`,
-          explanation: `
-            <strong>三层检索的设计哲学：</strong><br>
-            • <strong>QuickSearch</strong>：速度优先，适合简单查询<br>
-            • <strong>PanoramaSearch</strong>：全面性优先，适合探索性查询<br>
-            • <strong>InsightForge</strong>：深度优先，适合分析性查询<br><br>
-
-            <strong>InsightForge 的核心创新：</strong><br>
-            • 自动生成子问题（Query Decomposition）<br>
-            • 多维度检索（向量 + 图谱 + 关系链）<br>
-            • 综合分析（Synthesis）
-          `
-        },
-        {
-          type: 'concept',
-          title: '🔬 GraphRAG vs 传统 RAG 的实验对比',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>微软论文的实验结果：</strong><br><br>
-
-              <strong>数据集：</strong>Podcast 转录文本（1M tokens）<br><br>
-
-              <strong>任务：</strong>回答需要全局理解的问题<br>
-              • "这个播客的主要主题是什么？"<br>
-              • "不同嘉宾的观点有什么冲突？"<br><br>
-
-              <strong>结果：</strong><br>
-              • <strong>传统 RAG</strong>：准确率 45%，经常遗漏关键信息<br>
-              • <strong>GraphRAG</strong>：准确率 78%，能综合多个来源<br>
-              • <strong>成本</strong>：GraphRAG 的索引成本高 3 倍，但查询成本相同<br><br>
-
-              <strong>结论：</strong><br>
-              对于需要全局理解的任务，GraphRAG 的准确率提升值得额外的索引成本！
-            </div>
-          `
-        },
-        {
-          type: 'concept',
-          title: '🏗️ MiroFish 的 GraphRAG 实现细节',
-          html: `
-            <div style="margin:14px 0;padding:14px;background:rgba(0,229,255,.06);border-radius:12px;font-size:.9rem;line-height:1.9">
-              <strong>MiroFish 在论文基础上的工程优化：</strong><br><br>
-
-              <strong>1. 本体约束提取</strong><br>
-              • 论文：自由提取所有实体<br>
-              • MiroFish：用本体约束，只提取社交媒体相关实体<br>
-              • 优势：减少噪音，提高准确率<br><br>
-
-              <strong>2. 增量更新</strong><br>
-              • 论文：静态图谱<br>
-              • MiroFish：支持动态更新（模拟过程中 Agent 的活动会更新图谱）<br>
-              • 实现：Zep 的 add_episode API<br><br>
-
-              <strong>3. 混合检索</strong><br>
-              • 论文：只用图谱检索<br>
-              • MiroFish：向量检索 + 图谱检索 + 关系链检索<br>
-              • 优势：兼顾速度和准确率<br><br>
-
-              <strong>4. 时序记忆</strong><br>
-              • 论文：没有时间维度<br>
-              • MiroFish：每个事实都有时间戳，支持"某个时间点的图谱状态"<br>
-              • 应用：回溯分析（"事件发生前后，舆论如何变化？"）
-            </div>
-          `
-        },
-        {
-          type: 'pitfalls',
-          title: '⚠️ 生产级 GraphRAG 的深层陷阱',
-          items: [
-            '实体消歧问题：同一个人的不同称呼（"张三"、"张老师"、"小张"）被识别为不同实体——需要实体链接（Entity Linking）',
-            '关系抽取准确率：LLM 容易产生幻觉关系（两个实体在同一段落出现，但实际没有关系）——需要关系验证',
-            '图谱规模爆炸：100 万字文档可能产生 10 万个实体，图谱太大无法加载——需要社区检测和分层存储',
-            '增量更新的一致性：新增文本可能与旧图谱冲突（"张三离职了"vs"张三在职"）——需要冲突检测和版本管理',
-            '检索成本：多跳查询（3 跳以上）的计算复杂度是 O(n³)，大图谱会很慢——需要索引优化和缓存',
-            '社区检测的稳定性：Leiden 算法是随机的，每次运行结果可能不同——需要固定随机种子或使用确定性算法'
-          ]
         },
         {
           type: 'quiz',
-          q: 'GraphRAG 论文的核心创新是什么？',
+          q: 'GraphRAG 相比传统 RAG 的核心优势是什么？',
           opts: [
-            '用 LLM 提取实体和关系',
-            '用社区检测将图谱分层，支持全局查询',
-            '用向量数据库存储图谱',
-            '用 Transformer 编码图结构'
+            '检索速度更快',
+            '能理解实体之间的结构化关系，支持跨文档的深层推理',
+            '需要的存储空间更少',
+            '不需要向量数据库'
           ],
           ans: 1,
-          feedback_ok: '🔥 完美！社区检测是 GraphRAG 的核心创新。通过将图谱分成多个社区，并为每个社区生成摘要，GraphRAG 能够回答需要全局理解的问题——这是传统 RAG 做不到的！',
-          feedback_err: '论文的核心创新是"社区检测 + 分层摘要"。想象一个有 10 万个节点的图谱——如果不分层，查询时需要遍历所有节点。但如果先分成 100 个社区，每个社区 1000 个节点，查询时只需要先找到相关社区，再在社区内查询，效率提升 100 倍！'
+          feedback_ok: '🔥 正确！传统 RAG 擅长"找相关内容"，GraphRAG 擅长"推理关系"。当用户问的问题需要跨多个文档的综合推理时，GraphRAG 的优势就体现出来了。',
+          feedback_err: 'GraphRAG 的核心优势是"关系推理"。传统 RAG 检索文本片段，GraphRAG 检索实体之间的关系。前者是"内容匹配"，后者是"逻辑推理"。'
         }
       ]
     }
   }
 });
-
